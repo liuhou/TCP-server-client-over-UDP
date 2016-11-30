@@ -8,13 +8,13 @@
 #include <cstdint>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+//#include <sys/socket.h>
+//#include <netinet/in.h>
+//#include <arpa/inet.h>
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
-#include <netdb.h>
+//#include <netdb.h>
 #include <sstream>
 #include <vector>
 #include <fcntl.h>
@@ -56,7 +56,7 @@ public:
     void setPayLoad(std::string &pl);
     std::string getPayLoad();
     std::string encode();
-    void consume(char wire[]);
+    void consume(char *wire);
 };
 
 class Segment{
@@ -64,14 +64,27 @@ private:
     int duplicateAck;
     uint16_t seqNum;
     uint16_t ackNum;
-    double time;
-    bool isTrans;
-    bool isRetrans;
+    //double time;
+    //bool isTrans;
+    //bool isRetrans;
     bool isAcked;
     
 public:
+    Packet packet;
     Segment();
-    
+    void setPacket(Packet &p);
+    void setSeqNum(uint16_t s);
+    void setSeqNum();
+    void setAckNum(uint16_t a);
+    void setAckNum();
+    void addDuplicateAck();
+    void resetDuplicateAck();
+    void setAck(bool a);
+    uint16_t getSeqNum();
+    uint16_t getAckNum();
+    uint16_t getSupposedAck();
+    int getDuplicateAck();
+    bool getAck();
 };
 
 class FileReader{
@@ -96,6 +109,24 @@ public:
     std::string getTop();
     std::string pop();
     bool hasNext();
+};
+
+class SendBuffer{
+private:
+    std::vector<Segment> buffer;
+    uint16_t startSeqNum;
+    uint16_t cwnd;
+    uint16_t endSeqNum;
+    
+public:
+    SendBuffer();
+    void setStart(uint16_t s);
+    uint16_t getEnd();
+    uint16_t getStart();
+    bool canContain(uint16_t size);
+    int push(Segment &segment);
+    Segment* findSegment(uint16_t seq);
+    int ack(uint16_t seq);
 };
 #endif /* PACKET_H */
 
