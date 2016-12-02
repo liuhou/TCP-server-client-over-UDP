@@ -1,33 +1,26 @@
-# cs118_proj2
+# CS118 Project 2
 
-## Task 
+Template for for [CS118 Spring 2016 Project 2](http://web.cs.ucla.edu/classes/spring16/cs118/project-2.html) 
 
-### Step 1
-Assume there is no packet loss. Just have the server send a packet, the receiver respond with an ACK. 
-Critical points:
-- Header generation.
-- Three-way handshaking and disconnection.
-Implementation details:
-- Header file for abstraction and constant definition
-- Print out debugging info. (debugging helper functions)
+## Makefile
 
-### Step 2
-Introduce a large file transmission. Divide the file into multiple packets and transmit the packets based on the current congestion window size.
-Critical points:
-- Here we may only use fixed window size for simplicity.
-- Make sure `window` field works fine.
+This provides a couple make targets for things.
+By default (all target), it makes the `server` and `client` executables.
 
-### Step 3
-Introduce packet loss. Now you have to add a timer at the first sent and unacked packet. There should be one timeout whenever data segments are sent out.
-Citical points:
-- Correctly handle packet loss in all kinds of scenario. 
-- Possibe best way to do is to draw a finite-state-machine.
-- We may need to refer to RFC and list all possible corner cases that we can think of. Make sure to write testing script for this step.
+It provides a `clean` target, and `tarball` target to create the submission file as well.
 
-### Step 4
-Congestion control feature.
-- TCP Tahoe congestion window adjustment.
-- Bonus: adaptive RTO.
+You will need to modify the `Makefile` to add your userid for the `.tar.gz` turn-in at the top of the file.
 
-## Uncertainty
-1. Shuaiyi: How to implement the TCP congestion window in terms of data structure? 
+## Provided Files
+
+`server.cpp` and `client.cpp` are the entry points for the server and client part of the project.
+
+## Wireshark dissector
+
+For debugging purposes, you can use the wireshark dissector from `tcp.lua`. The dissector requires
+at least version 1.12.6 of Wireshark with LUA support enabled.
+
+To enable the dissector for Wireshark session, use `-X` command line option, specifying the full
+path to the `tcp.lua` script:
+
+    wireshark -X lua_script:./ndn.lua
