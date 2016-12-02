@@ -17,8 +17,6 @@
 /* user-defined headers*/
 #include "server.h"
 
-const std::string SimpleLogger::level_str[] = {"DEBUG", "INFO", 
-    "WARN", "ERROR" };
 
 void TCPServer::listenAndRun() {
     /* This function sets up sockets, runs into evernt loop and transits the 
@@ -120,7 +118,7 @@ void TCPServer::run() {
             case FIN_WAIT_1: runningFinWait1(nReadyFds); break;
             case FIN_WAIT_2: runningFinWait2(nReadyFds); break;
             case TIME_WAIT: runningTimeWait(nReadyFds); break;
-            case CLOSED: return;
+            case CLOSED: close(sockfd); return;
             default: break;
         }
     }

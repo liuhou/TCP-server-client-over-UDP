@@ -2,37 +2,20 @@
 #define _SERVER_H_
 #include <string>
 #include <iostream>
-
-enum ServerState {
-    CLOSED = 0,
-    LISTEN,
-    SYN_RCVD,
-    ESTABLISHED,
-    FIN_WAIT_1,
-    FIN_WAIT_2,
-    TIME_WAIT
-};
-
-enum Level { DEBUG = 0, INFO, WARN, ERROR };
-
-/* logger helper class */
-class SimpleLogger {
-private:
-    Level level;
-public:
-    SimpleLogger(Level ll=DEBUG): level(ll) { }
-    static const std::string level_str[];
-    void logging(Level logging_level, const std::string &logs) {
-        if (logging_level < level)
-            return;
-        std::cout << "[" << level_str[logging_level] << "] " << "SERVER: "
-                  << logs << std::endl;
-    }
-};
+#include "simple_logger.h"
 
 
 class TCPServer {
 private:
+    enum ServerState {
+        CLOSED = 0,
+        LISTEN,
+        SYN_RCVD,
+        ESTABLISHED,
+        FIN_WAIT_1,
+        FIN_WAIT_2,
+        TIME_WAIT
+    };
     ServerState server_state;
 
     /* Constant def */
