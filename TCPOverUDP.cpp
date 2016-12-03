@@ -17,6 +17,15 @@ Packet::Packet(uint16_t seq, uint16_t ack, uint16_t win, bool a, bool s, bool f,
     F = f;
     payload = str;
 }
+Packet::Packet(uint16_t seq, uint16_t ack, uint16_t win, bool a, bool s, bool f){
+    seqNumber = seq;
+    ackNumber = ack;
+    window = win;
+    A = a;
+    S = s;
+    F = f;
+    payload = "";
+}
 void Packet::setSeqNumber(uint16_t seq){
     seqNumber = seq;
 }
@@ -53,6 +62,7 @@ void Packet::setPayLoad(std::string &pl){
 std::string Packet::getPayLoad(){
     return payload;
 }
+
 void Packet::consume(std::string encoded) {
     unsigned char high, low;
     high = encoded[0]; low = encoded[1];
@@ -68,7 +78,9 @@ void Packet::consume(std::string encoded) {
     A = low & 4;
     S = low & 2;
     F = low & 1;
-    payload = encoded.substr(8);
+    payload = "";
+    if (encoded.size() > 8) 
+        payload = encoded.substr(8);
 }
 
 
@@ -94,45 +106,7 @@ void Packet::printHeader() {
               << A << S << F << '\n'
               << payload << std::endl;
 }
-/*std::string Packet::encode(){
-    unsigned char sLeft = seqNumber >> 8;
-    unsigned char sRight = seqNumber & 255;
-    unsigned char aLeft = ackNumber >> 8;
-    unsigned char aRight = ackNumber & 255;
-    unsigned char wLeft = window >> 8;
-    unsigned char wRight = window & 255;
-    unsigned char left = 0;
-    unsigned char right = F + (S << 1) + (A << 2);
-    std::string str = "";
-    str.push_back(sLeft);
-    str.push_back(sRight);
-    str.push_back(aLeft);
-    str.push_back(aRight);
-    str.push_back(wLeft);
-    str.push_back(wRight);
-    str.push_back(left);
-    str.push_back(right);
-    str = str + payload;
-    return str;
-}
-void Packet::consume(char *wire){
-    unsigned char sL = wire[0];
-    unsigned char sR = wire[1];
-    seqNumber = (uint16_t(sL) << 8) + uint16_t(sR);
-    unsigned char aL = wire[2];
-    unsigned char aR = wire[3];
-    ackNumber = (uint16_t(aL) << 8) + uint16_t(aR);
-    unsigned char wL = wire[4];
-    unsigned char wR = wire[5];
-    window = (uint16_t(wL) << 8) + uint16_t(wR);
-    unsigned char right = wire[7];
-    A = ((right & 4)>>2);
-    S = (right & 2) >> 1;
-    F = (right & 1);
-    payload = "";
 
-    payload = std::string(reinterpret_cast<char*>(wire + 8));
-}*/
 Segment::Segment(){
     isAcked = false;
     duplicateAck = 0;

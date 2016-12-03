@@ -30,6 +30,7 @@
 
 class Packet{
 private:
+
     uint16_t seqNumber;
     uint16_t ackNumber;
     uint16_t window;
@@ -38,8 +39,11 @@ private:
     bool F;
     std::string payload;
 public:
+    static const int HEADER_LENGTH = 8; // number of bytes for header only
+
     Packet();
     Packet(uint16_t seq, uint16_t ack, uint16_t win, bool a, bool s, bool f, std::string &str);
+    Packet(uint16_t seq, uint16_t ack, uint16_t win, bool a, bool s, bool f);
     void setSeqNumber(uint16_t seq);
     uint16_t getSeqNumber();
     void setAckNumber(uint16_t ack);
@@ -153,4 +157,3 @@ public:
     //void writeToFile();
 };
 #endif /* TCPOVERUDP_H*/
-
