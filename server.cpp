@@ -97,7 +97,9 @@ void TCPServer::run() {
                                gettimeofday(&now, NULL);
                                double temp = buffer.RTO + timeCalculate - now.tv_sec - 
                                    (1e-6)*now.tv_usec;
-                               tv.tv_sec = floor(temp);
+                               tv.tv_sec = 0;
+                               if (floor(temp) >= 0)
+                                   tv.tv_sec = floor(temp);
                                tv.tv_usec = (temp - floor(temp))*1e6;
                            }
                            break;
@@ -181,14 +183,11 @@ void TCPServer::runningListen(int nReadyFds) {
         if (packet.getSyn() && !packet.getAck() && !packet.getFin()) {
             std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;
             initialSeq = rand() % MAX_SEQ;
-            uint16_t initialAck = packet.getSeqNumber() + 1;
-            packet.setAck(true);
-            packet.setAckNumber(initialAck);
-            packet.setSyn(true);
-            packet.setFin(false);
-            std::string payload = "";
-            packet.setPayLoad(payload);
-            std::string sendPacket = packet.encode();
+            Packet syn_ack_packet(initialSeq, 
+                                  packet.getSeqNumber() + 1,
+                                  0, // TODO: fix window size later
+                                  1, 1, 0);
+            std::string sendPacket = syn_ack_packet.encode();
             if (sendto(sockfd, sendPacket.c_str(), sendPacket.size(), 0, 
                        (struct sockaddr *)&their_addr, 
                        sizeof(struct sockaddr_storage)) == -1) {
@@ -235,7 +234,8 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
          **/
         std::string str_buf(buf, nbytes);
         packet.consume(str_buf);
-        if (packet.getAck() && !packet.getFin() && (!packet.getSyn()) 
+        packet.printHeader();
+        if (packet.getAck() && !packet.getFin() && !packet.getSyn() 
                 && packet.getAckNumber() == initialSeq + 1) {
             server_state = ESTABLISHED;
             reader.read(filename);
@@ -298,7 +298,7 @@ void TCPServer::runningEstablished(int nReadyFds) {
             return;
         }
         //use SendBuffer's API
-        std::string str_buf(buf);
+        std::string str_buf(buf, nbytes);
         packet.consume(str_buf);
         
         if(packet.getAck()&&(!packet.getFin())&&(!packet.getSyn())){
@@ -398,7 +398,7 @@ void TCPServer::runningFinWait1(int nReadyFds) {
          *       3. see if the packet is FIN-ACK/FIN
          *       4. if so, change state directly to TIME_WAIT
          **/
-        std::string str_buf(buf);
+        std::string str_buf(buf, nbytes);
         packet.consume(str_buf);
         if(packet.getAck() && packet.getFin() && (!packet.getSyn())){
             //

@@ -162,6 +162,7 @@ void TCPClient::runningSynSent(int nReadyFds) {
         std::string packet_encoded(buf, nbytes);
         Packet packet;
         packet.consume(packet_encoded);
+        packet.printHeader();
         if (packet.getSyn() && packet.getAck() && !packet.getFin() 
                 && packet.getAckNumber() == 1) {
             std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;        
