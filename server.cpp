@@ -76,7 +76,7 @@ void TCPServer::run() {
     fd_set read_fds;
     FD_SET(sockfd, &read_fds);
     int nReadyFds = 0;
-
+    reader.read(filename);
     while (true) {
         logger.logging(DEBUG, "Server running in state " + stateStringify());
         // set timeout timer depends on the state server is in
@@ -180,20 +180,22 @@ void TCPServer::runningListen(int nReadyFds) {
         std::string packet_encoded(buf, nbytes);
         packet.consume(packet_encoded);
         if (packet.getSyn() && !packet.getAck() && !packet.getFin()) {
-            std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;
+            std::cout << "Receiving packet " << packet.getSeqNumber() << " SYN" << std::endl;
+            srand (time(NULL));
             initialSeq = rand() % MAX_SEQ;
-            packet = Packet(initialSeq, 
-                    packet.getSeqNumber() + 1,
-                    0, // TODO: fix window size later
-                    1, 1, 0);
-            std::string sendPacket = packet.encode();
+            Packet syn_ack_packet(initialSeq, 
+                                  packet.getSeqNumber() + 1,
+                                  0, // TODO: fix window size later
+                                  1, 1, 0);
+            packet = syn_ack_packet;
+            std::string sendPacket = syn_ack_packet.encode();
             if (sendto(sockfd, sendPacket.c_str(), sendPacket.size(), 0, 
                        (struct sockaddr *)&their_addr, 
                        sizeof(struct sockaddr_storage)) == -1) {
                 perror("sendto");
                 exit(1);
             }
-            std::cout<<"Send packeting "<<initialSeq<<" SYN"<<std::endl;
+            std::cout<<"Sending packet "<<initialSeq<<" SYN"<<std::endl;
             server_state = SYN_RCVD;
         } else {
             std::cout<<"Receiving packet "<<packet.getSeqNumber()<<std::endl;
@@ -236,7 +238,7 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
         if (packet.getAck() && !packet.getFin() && !packet.getSyn() 
                 && packet.getAckNumber() == initialSeq + 1) {
             server_state = ESTABLISHED;
-            reader.read(filename);
+            
             initialSeq += 1;
             while (reader.hasNext() && buffer.canContain(reader.getTop().size())){
                 std::string payload = reader.pop();
@@ -344,7 +346,7 @@ void TCPServer::runningEstablished(int nReadyFds) {
                     sendPacket.setAckNumber(packet.getSeqNumber()+1);
                     sendPacket.setSyn(false);
                     sendPacket.setFin(false);
-                    sendPacket.setAck(true);//should we set it true?
+                    sendPacket.setAck(true);
                     Segment sendSegment;
                     sendSegment.setPacket(sendPacket);
                     gettimeofday(&current, NULL);
@@ -452,8 +454,11 @@ int main() {
     // TODO: use args to specify port and host
     std::string filename = "test";
     std::string host="10.0.0.1", port="9999";
+    /*if (argc == 3){
+        port = argv[1];
+        filename = argv[2];
+    }*/
     TCPServer tcp_server(host, port, filename);
     tcp_server.listenAndRun();
     return 0;
 }
-
