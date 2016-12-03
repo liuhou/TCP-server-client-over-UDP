@@ -220,7 +220,7 @@ bool FileReader::hasNext(){
 
 SendBuffer::SendBuffer(){
     startSeqNum = 0;
-    cwnd = 1024;
+    cwnd = 10000;
     endSeqNum = 0;
     RTO = 1;
     SRTT = 0.5;
@@ -276,10 +276,10 @@ int SendBuffer::ack(uint16_t ackNum, double time){// return 0: nomal ack; return
             found = true;
             
             //deal with RTO
-            double sampleRTT = time - it->getSendTime();
+            /*double sampleRTT = time - it->getSendTime();
             SRTT = 0.875 * SRTT + 0.125 * sampleRTT;
             DEVRTT = 0.75 * DEVRTT + 0.25 * fabs(sampleRTT - DEVRTT);
-            //RTO = SRTT + 4 * DEVRTT;
+            RTO = SRTT + 4 * DEVRTT;*/
             break;
         }
     }

@@ -106,8 +106,8 @@ void TCPServer::run() {
             case FIN_WAIT_1: tv.tv_usec = RETRANS_TIMEOUT_USEC;
                              tv.tv_sec = 0;
                              break;
-            case FIN_WAIT_2: tv.tv_sec = ECHO_SEC;
-                             tv.tv_usec = 0;
+            case FIN_WAIT_2: tv.tv_sec = 0;
+                             tv.tv_usec = ECHO_SEC;
                              break;
             case TIME_WAIT: tv.tv_sec = 0;
                             tv.tv_usec = FIN_TIME_WAIT;
@@ -197,6 +197,7 @@ void TCPServer::runningListen(int nReadyFds) {
             }
             std::cout<<"Sending packet "<<initialSeq<<" SYN"<<std::endl;
             server_state = SYN_RCVD;
+            
         } else {
             std::cout<<"Receiving packet "<<packet.getSeqNumber()<<std::endl;
         }
@@ -240,7 +241,7 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
             server_state = ESTABLISHED;
             
             initialSeq += 1;
-            while (reader.hasNext() && buffer.canContain(reader.getTop().size())){
+            while (reader.hasNext() && buffer.canContain(reader.getChunkSize())){
                 std::string payload = reader.pop();
                 Packet sendPacket;
                 sendPacket.setPayLoad(payload);
@@ -338,12 +339,12 @@ void TCPServer::runningEstablished(int nReadyFds) {
                 std::cout<<"Send packet "<<packet.getSeqNumber()<<" FIN"<<std::endl;
                 server_state = FIN_WAIT_1;
             } else {
-                while(reader.hasNext()&&buffer.canContain(reader.getTop().size())){
+                while(reader.hasNext()&&buffer.canContain(reader.getChunkSize())){
                     std::string payload = reader.pop();
                     Packet sendPacket;
                     sendPacket.setPayLoad(payload);
                     sendPacket.setSeqNumber(buffer.getEnd());
-
+                    // for test  std::cout<<sendPacket.getPayLoad()<<"payload"<<std::endl;
                     sendPacket.setAckNumber(packet.getSeqNumber()+1);
                     sendPacket.setSyn(false);
                     sendPacket.setFin(false);
@@ -409,6 +410,13 @@ void TCPServer::runningFinWait1(int nReadyFds) {
             packet.setAckNumber(packet.getSeqNumber());
             initialSeq += 1;
             packet.setSeqNumber(initialSeq);
+            std::string sendPacket = packet.encode();
+            if(sendto(sockfd, sendPacket.c_str(), sendPacket.size(), 0, 
+                            (struct sockaddr *)&their_addr, sizeof(struct sockaddr_storage)) == -1){
+                    perror("sendto");
+                    exit(1);
+                }
+            std::cout<<"Send packet "<<packet.getSeqNumber()<<" FIN"<<std::endl;
             server_state = TIME_WAIT;
         }
     }
