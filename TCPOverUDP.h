@@ -132,6 +132,7 @@ public:
     bool timeout(double time, uint16_t &seq); //if timeout, set seq to be the packet that timeout
     // you should first timeout(current time), then use fubdSegment(seq) to find the segment
     Segment* nextTimeout();
+    bool isEmpty();
 };
 
 class RcvBuffer{

@@ -2,26 +2,9 @@
 #define _SERVER_H_
 #include <string>
 #include <iostream>
+#include <sys/socket.h>
 #include "simple_logger.h"
 #include "TCPOverUDP.h"
-
-enum Level { DEBUG = 0, INFO, WARN, ERROR };
-
-/* logger helper class */
-class SimpleLogger {
-private:
-    Level level;
-public:
-    SimpleLogger(Level ll=DEBUG): level(ll) { }
-    static const std::string level_str[];
-    void logging(Level logging_level, const std::string &logs) {
-        if (logging_level < level)
-            return;
-        std::cout << "[" << level_str[logging_level] << "] " << "SERVER: "
-                  << logs << std::endl;
-    }
-};
-
 
 class TCPServer {
 private:
@@ -42,15 +25,12 @@ private:
     static const int FIN_TIME_WAIT = 500000;
     static const int MAX_BUF_LEN = 1033;
     static const int RETRANS_TIMEOUT_USEC = 500000;
-    static const int MAX_SEQ = 30720;
+    //static const int MAX_SEQ = 30720;
     /* Socket config */
     std::string host;
     std::string port;
     int sockfd;
     struct sockaddr_storage their_addr;
-
-    /* logger */
-    SimpleLogger logger;
     
     /*buffer and packet*/
     std::string filename;
@@ -87,7 +67,12 @@ private:
 
     /* Server behavior in TIMEWAIT state */
     void runningTimeWait (int nReadyFds);
-
+    
+    /* Server behavior in CLOSED state*/
+    void close (int sockfd);
+    
+    int packetReceiver(int sockfd, char buf[], int max_len, 
+                    std::string &client_addr);
 
     /* Server state string */
     std::string stateStringify() {
