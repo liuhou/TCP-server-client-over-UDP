@@ -109,8 +109,8 @@ void TCPServer::run() {
             case FIN_WAIT_2: tv.tv_sec = ECHO_SEC;
                              tv.tv_usec = 0;
                              break;
-            case TIME_WAIT: tv.tv_sec = FIN_TIME_WAIT;
-                            tv.tv_usec = 0;
+            case TIME_WAIT: tv.tv_sec = 0;
+                            tv.tv_usec = FIN_TIME_WAIT;
                             break;
             default: break;
         }
@@ -302,6 +302,7 @@ void TCPServer::runningEstablished(int nReadyFds) {
         packet.consume(str_buf);
         
         if(packet.getAck()&&(!packet.getFin())&&(!packet.getSyn())){
+            std::cout << "Receiving packet " << packet.getAckNumber() << std::endl;
             struct timeval current;
             gettimeofday(&current, NULL);
             double timeCalculate = current.tv_sec + current.tv_usec*1e-6;

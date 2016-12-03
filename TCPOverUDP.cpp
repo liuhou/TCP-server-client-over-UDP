@@ -279,7 +279,7 @@ int SendBuffer::ack(uint16_t ackNum, double time){// return 0: nomal ack; return
             double sampleRTT = time - it->getSendTime();
             SRTT = 0.875 * SRTT + 0.125 * sampleRTT;
             DEVRTT = 0.75 * DEVRTT + 0.25 * fabs(sampleRTT - DEVRTT);
-            RTO = SRTT + 4 * DEVRTT;
+            //RTO = SRTT + 4 * DEVRTT;
             break;
         }
     }

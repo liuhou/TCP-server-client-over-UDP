@@ -179,6 +179,7 @@ void TCPClient::runningSynSent(int nReadyFds) {
             // initialize recvbuffer
             recv_buffer.setWindow(RCVD_WINDOW_SIZE); 
             recv_buffer.setCumAck(packet.getSeqNumber() + 1);
+            recv_buffer.openFile("received.data");
             current_seq = INIT_SEQ + 1;
             client_state = ESTABLISHED;   
         }
@@ -218,7 +219,7 @@ void TCPClient::runningEstablished(int nReadyFds) {
             Segment new_seg;
             new_seg.setPacket(packet);
             int sinsert = recv_buffer.insert(new_seg);
-            if (sinsert == 0) current_seq += 1;
+            if (sinsert != 0) current_seq += 1;
             
             Packet ack_packet(current_seq,
                               recv_buffer.getCumAck(),
