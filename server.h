@@ -4,9 +4,27 @@
 #include <iostream>
 #include "simple_logger.h"
 
+enum Level { DEBUG = 0, INFO, WARN, ERROR };
+
+/* logger helper class */
+class SimpleLogger {
+private:
+    Level level;
+public:
+    SimpleLogger(Level ll=DEBUG): level(ll) { }
+    static const std::string level_str[];
+    void logging(Level logging_level, const std::string &logs) {
+        if (logging_level < level)
+            return;
+        std::cout << "[" << level_str[logging_level] << "] " << "SERVER: "
+                  << logs << std::endl;
+    }
+};
+
 
 class TCPServer {
 private:
+
     enum ServerState {
         CLOSED = 0,
         LISTEN,
@@ -20,7 +38,7 @@ private:
 
     /* Constant def */
     static const int ECHO_SEC = 5;
-    static const int FIN_TIME_WAIT = 5;
+    static const int FIN_TIME_WAIT = 500000;
     static const int MAX_BUF_LEN = 1033;
     static const int RETRANS_TIMEOUT_USEC = 500000;
     
@@ -28,10 +46,20 @@ private:
     std::string host;
     std::string port;
     int sockfd;
+    struct sockaddr_storage their_addr;
 
     /* logger */
     SimpleLogger logger;
+    
+    /*buffer and packet*/
+    std::string filename;
+    SendBuffer buffer;
+    FileReader reader;
+    Packet packet;
+    uint16_t initialSeq;
 
+    /* logger */
+    SimpleLogger logger;
 
     /* Main event loop for TCPServer.
      * This is where the server receives different incoming packets, sends 
@@ -73,10 +101,12 @@ private:
     } 
 public:
     /* construction */
-    TCPServer(std::string &h, std::string &p)
+    TCPServer(std::string &h, std::string &p, std::string &file)
         : server_state(CLOSED)
         , host(h)
-        , port(p) { }
+        , port(p)
+        , filename(file){ }
+
     
 
     /* This function sets up sockets, runs into evernt loop and transits the 
@@ -84,5 +114,5 @@ public:
      **/
     void listenAndRun();
 };
-
 #endif
+
