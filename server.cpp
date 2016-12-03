@@ -30,7 +30,7 @@ void TCPServer::listenAndRun() {
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE;
 
-    if ((rv=getaddrinfo(host.c_str(), port.c_str(), &hints, &servinfo)) != 0) {
+    if ((rv=getaddrinfo(NULL, port.c_str(), &hints, &servinfo)) != 0) {
         logger.logging(ERROR, "getaddrinfo error!");
         return;
     }
@@ -105,7 +105,8 @@ void TCPServer::run() {
         }
 
         // monitor sockfd file descriptor and timeout timer
-        if ((nReadyFds = select(fdmax+1, &read_fds, NULL, NULL, &tv)) == -1) {
+        FD_SET(sockfd, &read_fds);
+        if ((nReadyFds = select(sockfd+1, &read_fds, NULL, NULL, &tv)) == -1) {
             logger.logging(ERROR, "Select error.");
             continue;
         }
@@ -185,6 +186,7 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
         // we have a packet to receive
         char buf[MAX_BUF_LEN];
         std::string client_addr;
+        std::cout << "have a packet to receive" << std::endl;
         int nbytes = packetReceiver(sockfd, buf, MAX_BUF_LEN, client_addr);
         if (nbytes == -1) {
             logger.logging(ERROR, "recvfrom error.");

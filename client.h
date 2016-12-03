@@ -1,5 +1,9 @@
 #ifndef _CLIENT_H_
 #define _CLIENT_H_
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
 #include <string>
 #include <iostream>
 #include "simple_logger.h"
@@ -20,11 +24,15 @@ private:
     static const int FIN_TIME_WAIT = 5; // What is segemnt life time? 
     static const int MAX_BUF_LEN = 1033;
     static const int RETRANS_TIMEOUT_USEC = 500000;
+    static const int RCVD_WINDOW_SIZE = 15360;
     
     /* Socket config */
     std::string server_host;
-    std::string server_port;
+    int server_port;
     int sockfd;
+    struct sockaddr_in remaddr;
+    int slen;
+
 
     /* logger */
     SimpleLogger logger;
@@ -54,7 +62,7 @@ private:
     } 
 public:
     /* construction */
-    TCPClient(std::string &h, std::string &p)
+    TCPClient(std::string &h, int p)
         : client_state(CLOSED)
         , server_host(h)
         , server_port(p)

@@ -17,45 +17,54 @@
 /* user-defined headers*/
 #include "server.h"
 #include "client.h"
-
+#include "TCPOverUDP.h"
 
 void TCPClient::setupAndRun() {
     /* This function sets up sockets, runs into event loop and transits the 
      * client state from CLOSED to SYN_SENT.
      **/
-    struct addrinfo hints, *servinfo, *p;
-    int rv;
+ 
+    /* now define remaddr, the address to whom we want to send messages */
+    /* For convenience the host address is expressed as a numeric IP address */
+    /* that we will convert to a binary format via inet_aton */
 
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_DGRAM;
+    struct sockaddr_in myaddr;
 
-    if ((rv = getaddrinfo(server_host.c_str(), 
-                          server_host.c_str(), 
-                          &hints, &servinfo)) != 0) {
-        logger.logging(ERROR, "getaddrinfo error");
+    memset((char *) &remaddr, 0, sizeof(remaddr));
+    remaddr.sin_family = AF_INET;
+    remaddr.sin_port = htons(server_port);
+    if (inet_aton(server_host.c_str(), &remaddr.sin_addr)==0) {
+        fprintf(stderr, "inet_aton() failed\n");
+        exit(1);
+    }
+    slen = sizeof remaddr;
+
+    /* create a socket */
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+        logger.logging(ERROR, "createing socket error");
+    }
+    /* bind it to all local addresses and pick any port number */
+    memset((char *)&myaddr, 0, sizeof(myaddr));
+    myaddr.sin_family = AF_INET;
+    myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    myaddr.sin_port = htons(0);
+
+    if (bind(sockfd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
+        perror("bind failed");
+        logger.logging(ERROR, "bind failed");
         return;
-    }
-
-    // loop through all the results and make a socket
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                        p->ai_protocol)) == -1) {
-            logger.logging(ERROR, "socket error");
-            continue;
-        }
-        break;
-    }
-
-    if (p == NULL) {
-        logger.logging(ERROR, "failed to create socket");
-        return;
-    }
-
-    freeaddrinfo(servinfo);
+    } 
 
     // TODO: conjure a SYN packet here and send to server
-    
+    Packet syn_packet(0, 0, RCVD_WINDOW_SIZE, 0, 1, 0);
+    int nbytes = 0;
+    if ((nbytes = sendto(sockfd, syn_packet.encode().c_str(), 
+                    Packet::HEADER_LENGTH, 0,
+                    (struct sockaddr *)&remaddr, slen)) == -1) {
+        logger.logging(ERROR, "sendto error");
+        return;
+    }
+
     client_state = SYN_SENT;
     run();
 }
@@ -102,7 +111,8 @@ void TCPClient::run() {
         }
 
         // monitor sockfd file descriptor and timeout timer
-        if ((nReadyFds = select(fdmax+1, &read_fds, NULL, NULL, &tv)) == -1) {
+        FD_SET(sockfd, &read_fds);
+        if ((nReadyFds = select(sockfd+1, &read_fds, NULL, NULL, &tv)) == -1) {
             logger.logging(ERROR, "Select error.");
             continue;
         }
@@ -123,9 +133,15 @@ void TCPClient::runningSynSent(int nReadyFds) {
     /* Server behavior in ESTABLISHED state */
     if (nReadyFds == 0) {
         // timeout
-        /*
-         * TODO: resend syn
-         * */
+        Packet syn_packet(0, 0, RCVD_WINDOW_SIZE, 0, 1, 0);
+        int nbytes = 0;
+        if ((nbytes = sendto(sockfd, syn_packet.encode().c_str(), 
+                        Packet::HEADER_LENGTH, 0,
+                        (struct sockaddr *)&remaddr, slen)) == -1) {
+            logger.logging(ERROR, "sendto error");
+            return;
+        }
+        std::cout << nbytes << std::endl;
     } else {
         // we have a packet to receive
         char buf[MAX_BUF_LEN];
@@ -196,7 +212,7 @@ void TCPClient::runningLastAck(int nReadyFds) {
 
 int main() {
     // TODO: args
-    std::string server_host = "10.0.0.2", server_port = "9999";
+    std::string server_host = "10.0.0.1"; int server_port = 9999;
     TCPClient tcp_client(server_host, server_port);
     tcp_client.setupAndRun();
 }

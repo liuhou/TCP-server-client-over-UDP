@@ -7,7 +7,7 @@ USERID=EDIT_MAKE_FILE
 SERVER_FILES=server.cpp
 
 # Add all .cpp files that need to be compiled for your client
-CLIENT_FILES=client.cpp
+CLIENT_FILES=client.cpp TCPOverUDP.cpp
 
 all: server client
 

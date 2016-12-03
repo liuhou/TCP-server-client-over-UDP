@@ -17,6 +17,15 @@ Packet::Packet(uint16_t seq, uint16_t ack, uint16_t win, bool a, bool s, bool f,
     F = f;
     payload = str;
 }
+Packet::Packet(uint16_t seq, uint16_t ack, uint16_t win, bool a, bool s, bool f){
+    seqNumber = seq;
+    ackNumber = ack;
+    window = win;
+    A = a;
+    S = s;
+    F = f;
+    payload = "";
+}
 void Packet::setSeqNumber(uint16_t seq){
     seqNumber = seq;
 }

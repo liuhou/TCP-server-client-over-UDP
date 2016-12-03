@@ -20,7 +20,7 @@ public:
         if (logging_level < level)
             return;
         std::cout << "[" << level_str[logging_level] << "] " << side
-                  << logs << std::endl;
+                  << ": " << logs << std::endl;
     }
 };
 
