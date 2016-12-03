@@ -344,6 +344,20 @@ bool SendBuffer::timeout(double time, uint16_t &seq){
     }
     return false;
 }
+Segment* SendBuffer::nextTimeout(){
+    if(buffer.empty()){
+        return NULL;
+    }
+    Segment* result = buffer.begin();
+    double minTime = buffer.front().getSendTime();
+    for(std::vector<Segment>::iterator it = buffer.begin(); it != buffer.end(); it++){
+        if(it->getSendTime() < minTime){
+            result = &(*it);
+            minTime = it->getSendTime();
+        }
+    }
+    return result;
+}
 RcvBuffer::RcvBuffer(){
     window = 15360;
     cumAck = 0;
