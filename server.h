@@ -2,16 +2,7 @@
 #define _SERVER_H_
 #include <string>
 #include <iostream>
-
-enum ServerState {
-    CLOSED = 0,
-    LISTEN,
-    SYN_RCVD,
-    ESTABLISHED,
-    FIN_WAIT_1,
-    FIN_WAIT_2,
-    TIME_WAIT
-};
+#include "simple_logger.h"
 
 enum Level { DEBUG = 0, INFO, WARN, ERROR };
 
@@ -33,6 +24,16 @@ public:
 
 class TCPServer {
 private:
+
+    enum ServerState {
+        CLOSED = 0,
+        LISTEN,
+        SYN_RCVD,
+        ESTABLISHED,
+        FIN_WAIT_1,
+        FIN_WAIT_2,
+        TIME_WAIT
+    };
     ServerState server_state;
 
     /* Constant def */
@@ -56,6 +57,10 @@ private:
     FileReader reader;
     Packet packet;
     uint16_t initialSeq;
+
+    /* logger */
+    SimpleLogger logger;
+
     /* Main event loop for TCPServer.
      * This is where the server receives different incoming packets, sends 
      * packets, handles timeout/retransmission, manages states transition, 
@@ -101,6 +106,7 @@ public:
         , host(h)
         , port(p)
         , filename(file){ }
+
     
 
     /* This function sets up sockets, runs into evernt loop and transits the 
@@ -108,5 +114,5 @@ public:
      **/
     void listenAndRun();
 };
-
 #endif
+

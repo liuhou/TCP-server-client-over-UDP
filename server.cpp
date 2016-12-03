@@ -9,16 +9,13 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <string.h>
-#include "TCPOverUDP.h"
+
 /* std headers */
 #include <string>
 #include <iostream>
 
 /* user-defined headers*/
 #include "server.h"
-
-const std::string SimpleLogger::level_str[] = {"DEBUG", "INFO", 
-    "WARN", "ERROR" };
 
 void TCPServer::listenAndRun() {
     /* This function sets up sockets, runs into evernt loop and transits the 
@@ -79,7 +76,6 @@ void TCPServer::run() {
     FD_SET(sockfd, &read_fds);
     int nReadyFds = 0;
     int fdmax = sockfd;
-    
 
     while (true) {
         logger.logging(DEBUG, "Server running in state " + stateStringify());
@@ -92,6 +88,7 @@ void TCPServer::run() {
                            tv.tv_sec = 0;
                            break;
             case ESTABLISHED: // TODO: set timer to next timeout point
+
                 if(buffer.nextTimeout()==NULL){
                     tv.tv_sec = 0;
                     tv.tv_usec = 1;
@@ -103,6 +100,7 @@ void TCPServer::run() {
                     tv.tv_sec = floor(temp);
                     tv.tv_usec = (temp - floor(temp))*1e6;
                 }
+
                            break;
             case FIN_WAIT_1: tv.tv_usec = RETRANS_TIMEOUT_USEC;
                              tv.tv_sec = 0;
@@ -130,11 +128,13 @@ void TCPServer::run() {
             case FIN_WAIT_1: runningFinWait1(nReadyFds); break;
             case FIN_WAIT_2: runningFinWait2(nReadyFds); break;
             case TIME_WAIT: runningTimeWait(nReadyFds); break;
-            case CLOSED: return;
+            case CLOSED: close(sockfd); return;
             default: break;
         }
     }
 }
+
+
 
 
 void *get_in_addr(struct sockaddr *sa) {
@@ -272,8 +272,6 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
         }else{
             //discard the packet
         }
-    }
-}
 
 
 void TCPServer::runningEstablished(int nReadyFds) {
@@ -291,26 +289,6 @@ void TCPServer::runningEstablished(int nReadyFds) {
                     exit(1);
                 }
         std::cout<<"Send packet "<<sendPacket.getSeqNumber()<<" Time out Retransmission"<<std::endl;
-        
-    } else {
-        // we have a packet to receive
-        char buf[MAX_BUF_LEN];
-        std::string client_addr;
-        int nbytes = packetReceiver(sockfd, buf, MAX_BUF_LEN, client_addr);
-        if (nbytes == -1) {
-            logger.logging(ERROR, "recvfrom error.");
-            return;
-        }
-        logger.logging(DEBUG, "got packet from " + client_addr);
-        
-        /* TODO: 1. Use sendBuffer's API to determine if we need fast
-         *          retransmission or not.
-         *       2. See if sendBuffer can fit new segments. If so, send new 
-         *          segments.
-         *       3. When finish sending the entire file (all segements have been
-         *          acked), send Fin to client and change state to FIN_WAIT_1
-         **/
-        
     }
 }
 
@@ -347,6 +325,22 @@ void TCPServer::runningFinWait1(int nReadyFds) {
     }
 }
 
+int main() {
+    // TODO: use args to specify port and host
+    std::string filename = "test";
+    std::string host="10.0.0.1", port="9999";
+    TCPServer tcp_server(host, port, filename);
+    tcp_server.listenAndRun();
+    return 0;
+
+        /* TODO: 1. see if the packet is FIN-ACK
+         *       2. if so, change state to FIN_WAIT_2
+         *       3. see if the packet is FIN-ACK/FIN
+         *       4. if so, change state directly to TIME_WAIT
+         **/
+    }
+}
+
 
 void TCPServer::runningFinWait2(int nReadyFds) {
     /* Server behavior in FIN_WAIT_2 state */
@@ -369,7 +363,6 @@ void TCPServer::runningFinWait2(int nReadyFds) {
         /* TODO: 1. see if the packet is FIN
          *       2. if so, change state to TIME_WAIT
          **/
-        
     }
 }
 
@@ -386,14 +379,3 @@ void TCPServer::runningTimeWait(int nReadyFds) {
         // just ignore maybe
     }
 }
-
-
-int main() {
-    // TODO: use args to specify port and host
-    std::string filename = "test";
-    std::string host="10.0.0.1", port="9999";
-    TCPServer tcp_server(host, port, filename);
-    tcp_server.listenAndRun();
-    return 0;
-}
-

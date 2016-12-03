@@ -23,5 +23,8 @@ client: $(CLIENT_FILES:.cpp=.o)
 clean:
 	rm -rf *.o *~ *.gch *.swp *.dSYM server client *.tar.gz
 
+test: TCPOverUDP.o test.o
+	$(CXX) -o $@ $^ $(CXXFLAGS)
+
 tarball: clean
 	tar -cvf $(USERID).tar.gz *
