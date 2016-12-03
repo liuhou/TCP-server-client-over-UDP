@@ -187,7 +187,7 @@ int FileReader::getCursor(){
 }
 void FileReader::read(std::string &fn){ //load the file
     filename = fn;
-    filestream.open(filename);
+    filestream.open(filename, std::ifstream::in | std::ifstream::binary);
     if(!filestream.good()){
         std::cerr << "Error: cannot open file: " + filename <<std::endl;
         filestream.clear();
@@ -353,7 +353,7 @@ void RcvBuffer::setCumAck(uint16_t a){
     cumAck = a;
 }
 void RcvBuffer::openFile(std::string filename){
-    output.open(filename);
+    output.open(filename, std::ofstream::out | std::ofstream::binary);
 }
 int RcvBuffer::insert(Segment &segment){ //return 0: inserted and popped out; return 1: discard; return 2: inserted
     std::vector<Segment>::iterator it = buffer.begin();
@@ -382,7 +382,7 @@ int RcvBuffer::insert(Segment &segment){ //return 0: inserted and popped out; re
                 if(segment.getSeqNum() == it->getSeqNum()){
                 return 1;
                 }
-                buffer.insert(it, segment);
+                it = buffer.insert(it, segment);
                 return 2;
             }
         }else{
@@ -394,7 +394,7 @@ int RcvBuffer::insert(Segment &segment){ //return 0: inserted and popped out; re
     }
     //seq > cumAck && seq < window + cumAck
     if(buffer.empty()){
-        buffer.insert(it, segment);
+        it = buffer.insert(it, segment);
         return 2;
     }
     for(it = buffer.begin(); it != buffer.end() && segment.getSeqNum() < it->getSeqNum(); it++){
@@ -402,6 +402,6 @@ int RcvBuffer::insert(Segment &segment){ //return 0: inserted and popped out; re
             return 1;
         }
     }
-    buffer.insert(it, segment);
+    it = buffer.insert(it, segment);
     return 2;
 }

@@ -76,7 +76,7 @@ void TCPServer::run() {
     fd_set read_fds;
     FD_SET(sockfd, &read_fds);
     int nReadyFds = 0;
-
+    reader.read(filename);
     while (true) {
         logger.logging(DEBUG, "Server running in state " + stateStringify());
         // set timeout timer depends on the state server is in
@@ -180,7 +180,8 @@ void TCPServer::runningListen(int nReadyFds) {
         std::string packet_encoded(buf, nbytes);
         packet.consume(packet_encoded);
         if (packet.getSyn() && !packet.getAck() && !packet.getFin()) {
-            std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;
+            std::cout << "Receiving packet " << packet.getSeqNumber() << " SYN" << std::endl;
+            srand (time(NULL));
             initialSeq = rand() % MAX_SEQ;
             Packet syn_ack_packet(initialSeq, 
                                   packet.getSeqNumber() + 1,
@@ -238,7 +239,7 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
         if (packet.getAck() && !packet.getFin() && !packet.getSyn() 
                 && packet.getAckNumber() == initialSeq + 1) {
             server_state = ESTABLISHED;
-            reader.read(filename);
+            
             initialSeq += 1;
             while (reader.hasNext() && buffer.canContain(reader.getTop().size())){
                 std::string payload = reader.pop();
