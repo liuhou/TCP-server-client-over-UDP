@@ -131,7 +131,7 @@ void TCPClient::run() {
 
 
 void TCPClient::runningSynSent(int nReadyFds) {
-    /* Server behavior in ESTABLISHED state */
+    /* Client behavior in SYN_SYNC state */
     if (nReadyFds == 0) {
         // timeout
         Packet syn_packet(INIT_SEQ, 0, RCVD_WINDOW_SIZE, 0, 1, 0);
@@ -218,10 +218,10 @@ void TCPClient::runningEstablished(int nReadyFds) {
             Segment new_seg;
             new_seg.setPacket(packet);
             int sinsert = recv_buffer.insert(new_seg);
-            if (sinsert == 0) current_seq += HEADER_LENGTH;
+            if (sinsert == 0) current_seq += 1;
             
-            Packet ack_packet(recv_buffer.getCumAck(),
-                              current_seq,
+            Packet ack_packet(current_seq,
+                              recv_buffer.getCumAck(),
                               recv_buffer.getWindow(), 
                               1, 0, 0);
 
