@@ -10,7 +10,6 @@
 #include "simple_logger.h"
 #include "TCPOverUDP.h"
 
-
 class TCPServer {
 private:
 
@@ -30,7 +29,7 @@ private:
     static const int FIN_TIME_WAIT = 500000;
     static const int MAX_BUF_LEN = 1033;
     static const int RETRANS_TIMEOUT_USEC = 500000;
-    
+    //static const int MAX_SEQ = 30720;
     /* Socket config */
     std::string host;
     std::string port;
@@ -72,8 +71,10 @@ private:
 
     /* Server behavior in TIMEWAIT state */
     void runningTimeWait (int nReadyFds);
-
-
+    
+    /* Server behavior in CLOSED state*/
+    void serverClose (int sockfd);
+    
     /* Server state string */
     std::string stateStringify() {
         std::string state_strings[] = { "CLOSED"
