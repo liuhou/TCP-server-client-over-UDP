@@ -2,24 +2,13 @@
 #define _SERVER_H_
 #include <string>
 #include <iostream>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
 #include "simple_logger.h"
-
-enum Level { DEBUG = 0, INFO, WARN, ERROR };
-
-/* logger helper class */
-class SimpleLogger {
-private:
-    Level level;
-public:
-    SimpleLogger(Level ll=DEBUG): level(ll) { }
-    static const std::string level_str[];
-    void logging(Level logging_level, const std::string &logs) {
-        if (logging_level < level)
-            return;
-        std::cout << "[" << level_str[logging_level] << "] " << "SERVER: "
-                  << logs << std::endl;
-    }
-};
+#include "TCPOverUDP.h"
 
 
 class TCPServer {
@@ -46,7 +35,7 @@ private:
     std::string host;
     std::string port;
     int sockfd;
-    struct sockaddr_storage their_addr;
+    struct sockaddr_in their_addr;
 
     /* logger */
     SimpleLogger logger;
@@ -57,9 +46,6 @@ private:
     FileReader reader;
     Packet packet;
     uint16_t initialSeq;
-
-    /* logger */
-    SimpleLogger logger;
 
     /* Main event loop for TCPServer.
      * This is where the server receives different incoming packets, sends 

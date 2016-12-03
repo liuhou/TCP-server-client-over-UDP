@@ -62,6 +62,7 @@ void Packet::setPayLoad(std::string &pl){
 std::string Packet::getPayLoad(){
     return payload;
 }
+
 void Packet::consume(std::string encoded) {
     unsigned char high, low;
     high = encoded[0]; low = encoded[1];
@@ -77,7 +78,9 @@ void Packet::consume(std::string encoded) {
     A = low & 4;
     S = low & 2;
     F = low & 1;
-    payload = encoded.substr(8);
+    payload = "";
+    if (encoded.size() > 8) 
+        payload = encoded.substr(8);
 }
 
 
@@ -357,7 +360,8 @@ Segment* SendBuffer::nextTimeout(){
     if(buffer.empty()){
         return NULL;
     }
-    Segment* result = buffer.begin();
+    /*
+    auto result = buffer.begin();
     double minTime = buffer.front().getSendTime();
     for(std::vector<Segment>::iterator it = buffer.begin(); it != buffer.end(); it++){
         if(it->getSendTime() < minTime){
@@ -365,7 +369,7 @@ Segment* SendBuffer::nextTimeout(){
             minTime = it->getSendTime();
         }
     }
-    return result;
+    return result;i*/
 }
 RcvBuffer::RcvBuffer(){
     window = 15360;

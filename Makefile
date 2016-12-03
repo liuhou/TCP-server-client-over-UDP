@@ -4,7 +4,7 @@ CXXFLAGS= -g -Wall -pthread -std=c++11 $(CXXOPTIMIZE)
 USERID=EDIT_MAKE_FILE
 
 # Add all .cpp files that need to be compiled for your server
-SERVER_FILES=server.cpp
+SERVER_FILES=server.cpp TCPOverUDP.cpp
 
 # Add all .cpp files that need to be compiled for your client
 CLIENT_FILES=client.cpp TCPOverUDP.cpp

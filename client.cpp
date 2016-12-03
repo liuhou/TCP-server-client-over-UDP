@@ -64,6 +64,8 @@ void TCPClient::setupAndRun() {
         logger.logging(ERROR, "sendto error");
         return;
     }
+    std::cout << "Sending packet " << syn_packet.getAck() << " " 
+              << "SYN" << std::endl;
 
     client_state = SYN_SENT;
     run();
@@ -141,7 +143,8 @@ void TCPClient::runningSynSent(int nReadyFds) {
             logger.logging(ERROR, "sendto error");
             return;
         }
-        std::cout << nbytes << std::endl;
+        std::cout << "Sending packet " << syn_packet.getSeqNumber() << " " 
+                  << "Retransimission " << "SYN" << std::endl;
     } else {
         // we have a packet to receive
         char buf[MAX_BUF_LEN];
@@ -151,12 +154,30 @@ void TCPClient::runningSynSent(int nReadyFds) {
             return;
         }
         logger.logging(DEBUG, "got packet from server");
-        
-        /* TODO: 1. see if the packet is a SYN/ACK\
-         *       if so, send back ack
+
+        /* TODO: 
          *       initialize recvbuffer
          *       change state to established
          **/
+        std::string packet_encoded(buf, nbytes);
+        Packet packet;
+        packet.consume(packet_encoded);
+        if (packet.getSyn() && packet.getAck() && !packet.getFin() 
+                && packet.getAckNumber() == 1) {
+            std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;        
+            Packet ack_packet(packet.getAckNumber(),
+                              packet.getSeqNumber() + 1,
+                              RCVD_WINDOW_SIZE, 
+                              1, 0, 0);
+
+            if ((nbytes = sendto(sockfd, ack_packet.encode().c_str(), 
+                            Packet::HEADER_LENGTH, 0,
+                            (struct sockaddr *)&remaddr, slen)) == -1) {
+                logger.logging(ERROR, "sendto error");
+                return;
+            }
+            std::cout << "Sending packet " << ack_packet.getSeqNumber() << std::endl;
+        }
     }
 }
 
