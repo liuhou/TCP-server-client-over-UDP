@@ -242,7 +242,7 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
         std::string str_buf(buf);
         packet.consume(str_buf);
         if(packet.getAck()&&(!packet.getFin())&&(!packet.getSyn())&&packet.getAckNumber()==initialSeq+1){
-            server_state = ESTABLISHED
+            server_state = ESTABLISHED;
             reader.read(filename);
             initialSeq += 1;
             while(reader.hasNext()&&buffer.canContain(reader.top().size())){
@@ -262,7 +262,8 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
                 double timeCalculate = current.tv_sec + current.tv_usec*1e-6;
                 sendSegment.setSendTime(timeCalculate);
                 buffer.push(sendSegment);
-                if(sendto(sockfd, sendPacket.c_str(), sendPacket.size(), 0, (struct sockaddr *)&their_addr, sizeof(struct sockaddr_storage)) == -1){
+                std::string sendPacket_str = sendPacket.encode();
+                if(sendto(sockfd, sendPacket_str.c_str(), sendPacket_str.size(), 0, (struct sockaddr *)&their_addr, sizeof(struct sockaddr_storage)) == -1){
                     perror("sendto");
                     exit(1);
                 }
@@ -289,7 +290,64 @@ void TCPServer::runningEstablished(int nReadyFds) {
                     exit(1);
                 }
         std::cout<<"Send packet "<<sendPacket.getSeqNumber()<<" Time out Retransmission"<<std::endl;
-    }
+    }else{
+        //we have a packet to receive
+        char buf[MAX_BUF_LEN];
+        std::string client_addr;
+        int nbytes = packetReceiver(sockfd, buf, MAX_BUF_LEN, client_addr);
+        if (nbytes == -1) {
+            logger.logging(ERROR, "recvfrom error.");
+            return;
+        }
+        logger.logging(DEBUG, "got packet from " + client_addr);
+        //use SendBuffer's API
+        std::string str_buf(buf);
+        packet.consume(str_buf);
+        
+        if(packet.getAck()&&(!packet.getFin())&&(!packet.getSyn())){
+            struct timeval *current;
+            gettimeofday(current, NULL);
+            double timeCalculate = current.tv_sec + current.tv_usec*1e-6;
+            buffer.ack(packet.getAckNumber(), timeCalculate);
+            if((!reader.hasNext())&&buffer.isEmpty()){
+                packet.setFin(true);
+                packet.setAck(true);
+                packet.setSyn(false);
+                packet.setAckNumber(packet.getSeqNumber() + 1);
+                packet.setSeqNumber(buffer.getEnd());
+                std::string sendPacket = packet.encode();
+                if(sendto(sockfd, sendPacket.c_str(), sendPacket.size(), 0, (struct sockaddr *)&their_addr, sizeof(struct sockaddr_storage)) == -1){
+                    perror("sendto");
+                    exit(1);
+                }
+                std::cout<<"Send packet "<<packet.getSeqNumber()<<" FIN"<<std::endl;
+            }
+        }else{
+            while(reader.hasNext()&&buffer.canContain(reader.top().size())){
+                std::string payload = reader.pop();
+                Packet sendPacket;
+                sendPacket.setPayLoad(payload);
+                sendPacket.setSeqNumber(buffer.getEnd());
+                
+                sendPacket.setAckNumber(packet.getSeqNumber()+1);
+                sendPacket.setSyn(false);
+                sendPacket.setFin(false);
+                sendPacket.setAck(true);//should we set it true?
+                Segment sendSegment;
+                sendSegment.setPacket(sendPacket);
+                gettimeofday(current, NULL);
+                timeCalculate = current.tv_sec + current.tv_usec*1e-6;
+                sendSegment.setSendTime(timeCalculate);
+                buffer.push(sendSegment);
+                std::string sendPacket_str = sendPacket.encode();
+                if(sendto(sockfd, sendPacket_str.c_str(), sendPacket_str.size(), 0, (struct sockaddr *)&their_addr, sizeof(struct sockaddr_storage)) == -1){
+                    perror("sendto");
+                    exit(1);
+                }
+                std::cout<<"Send packet "<<sendPacket.getSeqNumber()<<std::endl;
+            }
+        }
+        
 }
 
 
@@ -300,6 +358,7 @@ void TCPServer::runningFinWait1(int nReadyFds) {
         /*
          * TODO: resend FIN
          * */
+        
     } else {
         // we have a packet to receive
         char buf[MAX_BUF_LEN];

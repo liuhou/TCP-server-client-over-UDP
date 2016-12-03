@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include "simple_logger.h"
+#include "TCPOverUDP.h"
 
 enum Level { DEBUG = 0, INFO, WARN, ERROR };
 
@@ -41,7 +42,7 @@ private:
     static const int FIN_TIME_WAIT = 500000;
     static const int MAX_BUF_LEN = 1033;
     static const int RETRANS_TIMEOUT_USEC = 500000;
-    
+    static const int MAX_SEQ = 30720;
     /* Socket config */
     std::string host;
     std::string port;

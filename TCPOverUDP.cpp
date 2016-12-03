@@ -348,7 +348,7 @@ Segment* SendBuffer::nextTimeout(){
     if(buffer.empty()){
         return NULL;
     }
-    Segment* result = buffer.begin();
+    Segment* result = buffer.front();
     double minTime = buffer.front().getSendTime();
     for(std::vector<Segment>::iterator it = buffer.begin(); it != buffer.end(); it++){
         if(it->getSendTime() < minTime){
