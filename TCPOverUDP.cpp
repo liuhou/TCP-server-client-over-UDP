@@ -355,6 +355,9 @@ void RcvBuffer::setCumAck(uint16_t a){
 void RcvBuffer::openFile(std::string filename){
     output.open(filename, std::ofstream::out | std::ofstream::binary);
 }
+void RcvBuffer::closeFile(){
+    output.close();
+}
 int RcvBuffer::insert(Segment &segment){ //return 0: inserted and popped out; return 1: discard; return 2: inserted
     std::vector<Segment>::iterator it = buffer.begin();
     if(segment.getSeqNum() == cumAck){

@@ -155,5 +155,6 @@ public:
     void openFile(std::string filename);
     int insert(Segment &segment);
     //void writeToFile();
+    void closeFile();
 };
 #endif /* TCPOVERUDP_H*/
