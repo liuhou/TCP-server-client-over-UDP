@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include "simple_logger.h"
+#include "TCPOverUDP.h"
 
 
 class TCPClient {
@@ -25,7 +26,8 @@ private:
     static const int MAX_BUF_LEN = 1033;
     static const int RETRANS_TIMEOUT_USEC = 500000;
     static const int RCVD_WINDOW_SIZE = 15360;
-    
+    static const int INIT_SEQ = 0;
+    static const int HEADER_LENGTH = 8; 
     /* Socket config */
     std::string server_host;
     int server_port;
@@ -36,6 +38,11 @@ private:
 
     /* logger */
     SimpleLogger logger;
+
+    /* receiver buffer*/
+    RcvBuffer recv_buffer;
+    int current_seq;
+    
 
     /* Main event loop for TCPClient.
      * This is where the client establishes connection with server, receives 

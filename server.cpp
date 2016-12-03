@@ -178,16 +178,15 @@ void TCPServer::runningListen(int nReadyFds) {
          * 2. If so, send SYN/ACK and change state to SYN_RCVD. Otherwise
          * continue to stay at LISTEN. */
         std::string packet_encoded(buf, nbytes);
-        Packet packet;
         packet.consume(packet_encoded);
         if (packet.getSyn() && !packet.getAck() && !packet.getFin()) {
             std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;
             initialSeq = rand() % MAX_SEQ;
-            Packet syn_ack_packet(initialSeq, 
-                                  packet.getSeqNumber() + 1,
-                                  0, // TODO: fix window size later
-                                  1, 1, 0);
-            std::string sendPacket = syn_ack_packet.encode();
+            packet = Packet(initialSeq, 
+                    packet.getSeqNumber() + 1,
+                    0, // TODO: fix window size later
+                    1, 1, 0);
+            std::string sendPacket = packet.encode();
             if (sendto(sockfd, sendPacket.c_str(), sendPacket.size(), 0, 
                        (struct sockaddr *)&their_addr, 
                        sizeof(struct sockaddr_storage)) == -1) {
@@ -196,7 +195,6 @@ void TCPServer::runningListen(int nReadyFds) {
             }
             std::cout<<"Send packeting "<<initialSeq<<" SYN"<<std::endl;
             server_state = SYN_RCVD;
-            
         } else {
             std::cout<<"Receiving packet "<<packet.getSeqNumber()<<std::endl;
         }

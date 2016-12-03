@@ -56,7 +56,7 @@ void TCPClient::setupAndRun() {
     } 
 
     // TODO: conjure a SYN packet here and send to server
-    Packet syn_packet(0, 0, RCVD_WINDOW_SIZE, 0, 1, 0);
+    Packet syn_packet(INIT_SEQ, 0, RCVD_WINDOW_SIZE, 0, 1, 0);
     int nbytes = 0;
     if ((nbytes = sendto(sockfd, syn_packet.encode().c_str(), 
                     Packet::HEADER_LENGTH, 0,
@@ -94,7 +94,6 @@ void TCPClient::run() {
     fd_set read_fds;
     FD_SET(sockfd, &read_fds);
     int nReadyFds = 0;
-    int fdmax = sockfd;
 
     while (true) {
         logger.logging(DEBUG, "Client running in state " + stateStringify());
@@ -135,7 +134,7 @@ void TCPClient::runningSynSent(int nReadyFds) {
     /* Server behavior in ESTABLISHED state */
     if (nReadyFds == 0) {
         // timeout
-        Packet syn_packet(0, 0, RCVD_WINDOW_SIZE, 0, 1, 0);
+        Packet syn_packet(INIT_SEQ, 0, RCVD_WINDOW_SIZE, 0, 1, 0);
         int nbytes = 0;
         if ((nbytes = sendto(sockfd, syn_packet.encode().c_str(), 
                         Packet::HEADER_LENGTH, 0,
@@ -155,16 +154,14 @@ void TCPClient::runningSynSent(int nReadyFds) {
         }
         logger.logging(DEBUG, "got packet from server");
 
-        /* TODO: 
-         *       initialize recvbuffer
+         /*       initialize recvbuffer
          *       change state to established
          **/
         std::string packet_encoded(buf, nbytes);
         Packet packet;
         packet.consume(packet_encoded);
-        packet.printHeader();
         if (packet.getSyn() && packet.getAck() && !packet.getFin() 
-                && packet.getAckNumber() == 1) {
+                && packet.getAckNumber() == INIT_SEQ + 1) {
             std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;        
             Packet ack_packet(packet.getAckNumber(),
                               packet.getSeqNumber() + 1,
@@ -178,6 +175,12 @@ void TCPClient::runningSynSent(int nReadyFds) {
                 return;
             }
             std::cout << "Sending packet " << ack_packet.getSeqNumber() << std::endl;
+
+            // initialize recvbuffer
+            recv_buffer.setWindow(RCVD_WINDOW_SIZE); 
+            recv_buffer.setCumAck(packet.getSeqNumber() + 1);
+            current_seq = INIT_SEQ + 1;
+            client_state = ESTABLISHED;   
         }
     }
 }
@@ -187,9 +190,7 @@ void TCPClient::runningEstablished(int nReadyFds) {
     /* Server behavior in ESTABLISHED state */
     if (nReadyFds == 0) {
         // timeout
-        /*
-         * TODO: output a nice little message
-         * */
+        logger.logging(DEBUG, "waiting for data packets");
     } else {
         // we have a packet to receive
         char buf[MAX_BUF_LEN];
@@ -198,12 +199,58 @@ void TCPClient::runningEstablished(int nReadyFds) {
             logger.logging(ERROR, "recvfrom error.");
             return;
         }
-        logger.logging(DEBUG, "got packet from server");
-        /* TODO: 1. see if the packet is a data packet
-         *       1.1 if so, send back the right ack, and mantain recvbuffer
-         *       2. if the packet is a FIN
-         *       3. send ACK/FIN and change state to LAST_ACK
+        /* 0. see if the packet is SYN/ACK, if so we need retransmit 
+         *    the first ack.
+         * 1. see if the packet is a data packet
+         * 1.1 if so, send back the right ack, and mantain recvbuffer
+         * 2. if the packet is a FIN
+         * 3. send ACK/FIN and change state to LAST_ACK
          **/
+
+        std::string packet_encoded(buf, nbytes);
+        Packet packet;
+        packet.consume(packet_encoded);
+
+        // data packet
+        if (!packet.getSyn() && packet.getAck() && !packet.getFin()) {
+            std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;        
+
+            Segment new_seg;
+            new_seg.setPacket(packet);
+            int sinsert = recv_buffer.insert(new_seg);
+            if (sinsert == 0) current_seq += HEADER_LENGTH;
+            
+            Packet ack_packet(recv_buffer.getCumAck(),
+                              current_seq,
+                              recv_buffer.getWindow(), 
+                              1, 0, 0);
+
+            if ((nbytes = sendto(sockfd, ack_packet.encode().c_str(), 
+                            Packet::HEADER_LENGTH, 0,
+                            (struct sockaddr *)&remaddr, slen)) == -1) {
+                logger.logging(ERROR, "sendto error");
+                return;
+            }
+            std::cout << "Sending packet " << ack_packet.getSeqNumber();
+            if (sinsert == 0) std::cout << " RETRANSMISSION" << std::endl;
+            std::cout << std::endl;
+            return;
+        } else if (packet.getFin()) {
+            Packet fin_ack_packet(packet.getAckNumber(), 
+                                  packet.getSeqNumber() + 1,
+                                  RCVD_WINDOW_SIZE, 
+                                  1, 0, 1);
+            if ((nbytes = sendto(sockfd, fin_ack_packet.encode().c_str(), 
+                            Packet::HEADER_LENGTH, 0,
+                            (struct sockaddr *)&remaddr, slen)) == -1) {
+                logger.logging(ERROR, "sendto error");
+                return;
+            }
+            std::cout << "Sending packet " << fin_ack_packet.getSeqNumber() 
+                      << " FIN" << std::endl;
+            current_seq = packet.getAckNumber();
+            client_state = LAST_ACK;
+        }
     }
 }
 
@@ -212,9 +259,7 @@ void TCPClient::runningLastAck(int nReadyFds) {
     /* Server behavior in ESTABLISHED state */
     if (nReadyFds == 0) {
         // timeout
-        /*
-         * TODO: go to closed 
-         * */
+        client_state = CLOSED;
     } else {
         // we have a packet to receive
         char buf[MAX_BUF_LEN];
@@ -228,6 +273,16 @@ void TCPClient::runningLastAck(int nReadyFds) {
         /* TODO: 1. see if the packet is a Fin-ACK\
          *       if so, go to closed
          **/
+        std::string packet_encoded(buf, nbytes);
+        Packet packet;
+        packet.consume(packet_encoded);
+
+        // data packet
+        if (packet.getAck()) {
+            std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;        
+            if (packet.getAckNumber() == current_seq + 1)
+                client_state = CLOSED;
+        }
     }
 }
 
