@@ -29,6 +29,13 @@ private:
     static const int FIN_TIME_WAIT = 500000;
     static const int MAX_BUF_LEN = 1033;
     static const int RETRANS_TIMEOUT_USEC = 500000;
+    
+    
+    /* Congestion Control */
+    int Con_State;
+    static const int SLOW_START = 0;
+    static const int CA = 1;
+    
     //static const int MAX_SEQ = 30720;
     /* Socket config */
     std::string host;

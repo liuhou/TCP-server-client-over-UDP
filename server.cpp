@@ -264,7 +264,7 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
                     perror("sendto");
                     exit(1);
                 }
-                std::cout<<"Send packet "<<sendPacket.getSeqNumber()<<std::endl;
+                std::cout<<"Send packet "<<sendPacket.getSeqNumber()<< buffer.getWindow()<<std::endl;
             }
             
         }else{

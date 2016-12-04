@@ -48,7 +48,7 @@ void TCPClient::setupAndRun() {
     myaddr.sin_family = AF_INET;
     myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     myaddr.sin_port = htons(0);
-
+    
     if (bind(sockfd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
         perror("bind failed");
         logger.logging(ERROR, "bind failed");
@@ -179,7 +179,8 @@ void TCPClient::runningSynSent(int nReadyFds) {
             // initialize recvbuffer
             recv_buffer.setWindow(RCVD_WINDOW_SIZE); 
             recv_buffer.setCumAck(packet.getSeqNumber() + 1);
-            recv_buffer.openFile("received.data");
+            std::string filename = "received.data";
+            recv_buffer.openFile(filename);
             current_seq = INIT_SEQ + 1;
             client_state = ESTABLISHED;   
         }
@@ -219,7 +220,8 @@ void TCPClient::runningEstablished(int nReadyFds) {
             Segment new_seg;
             new_seg.setPacket(packet);
             int sinsert = recv_buffer.insert(new_seg);
-            if (sinsert != 0) current_seq += 1;
+            if (sinsert == 1) return;
+            if (sinsert == 0) current_seq += 1;
             
             Packet ack_packet(current_seq,
                               recv_buffer.getCumAck(),
@@ -233,7 +235,7 @@ void TCPClient::runningEstablished(int nReadyFds) {
                 return;
             }
             std::cout << "Sending packet " << ack_packet.getSeqNumber();
-            if (sinsert == 0) std::cout << " RETRANSMISSION" << std::endl;
+            
             std::cout << std::endl;
             return;
         } else if (packet.getFin()) {
@@ -284,6 +286,7 @@ void TCPClient::runningLastAck(int nReadyFds) {
             if (packet.getAckNumber() == current_seq + 1)
                 client_state = CLOSED;
         }
+        recv_buffer.closeFile();
     }
 }
 
@@ -293,4 +296,5 @@ int main() {
     std::string server_host = "10.0.0.1"; int server_port = 9999;
     TCPClient tcp_client(server_host, server_port);
     tcp_client.setupAndRun();
+    
 }

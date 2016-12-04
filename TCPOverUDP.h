@@ -122,6 +122,7 @@ private:
     uint16_t startSeqNum;
     uint16_t cwnd;
     uint16_t endSeqNum;
+    uint16_t ssthresh = 15360;
     
 public:
     SendBuffer();
@@ -137,6 +138,8 @@ public:
     // you should first timeout(current time), then use fubdSegment(seq) to find the segment
     Segment* nextTimeout();
     bool isEmpty();
+    uint16_t getWindow();
+    void setWindow();
 };
 
 class RcvBuffer{
@@ -155,5 +158,6 @@ public:
     void openFile(std::string filename);
     int insert(Segment &segment);
     //void writeToFile();
+    void closeFile();
 };
 #endif /* TCPOVERUDP_H*/

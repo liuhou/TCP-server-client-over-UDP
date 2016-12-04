@@ -220,11 +220,12 @@ bool FileReader::hasNext(){
 
 SendBuffer::SendBuffer(){
     startSeqNum = 0;
-    cwnd = 10000;
+    cwnd = 1024;
     endSeqNum = 0;
     RTO = 1;
     SRTT = 0.5;
     DEVRTT = 0.25;
+    ssthresh = 15360;
 }
 void SendBuffer::setStart(uint16_t s){
     startSeqNum = s;
@@ -335,6 +336,12 @@ Segment* SendBuffer::nextTimeout(){
 bool SendBuffer::isEmpty(){
     return buffer.empty();
 }
+uint16_t SendBuffer::getWindow(){
+    return cwnd;
+}
+void SendBuffer::setWindow(uint16_t w){
+    cwnd = w;
+}
 
 RcvBuffer::RcvBuffer(){
     window = 15360;
@@ -354,6 +361,9 @@ void RcvBuffer::setCumAck(uint16_t a){
 }
 void RcvBuffer::openFile(std::string filename){
     output.open(filename, std::ofstream::out | std::ofstream::binary);
+}
+void RcvBuffer::closeFile(){
+    output.close();
 }
 int RcvBuffer::insert(Segment &segment){ //return 0: inserted and popped out; return 1: discard; return 2: inserted
     std::vector<Segment>::iterator it = buffer.begin();
@@ -377,6 +387,7 @@ int RcvBuffer::insert(Segment &segment){ //return 0: inserted and popped out; re
         return 0;
     }
     if(segment.getSeqNum() < cumAck){
+        return 1; 
         if(cumAck + window > MAX_SEQ && segment.getSeqNum() < (cumAck + window)% MAX_SEQ){
             for(; it!=buffer.end() && (it->getSeqNum()>cumAck || it->getSeqNum()<segment.getSeqNum());it++){
                 if(segment.getSeqNum() == it->getSeqNum()){
