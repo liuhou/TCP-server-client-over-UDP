@@ -32,10 +32,11 @@ private:
     
     
     /* Congestion Control */
-    int Con_State;
+    int Con_State = 0;
     static const int SLOW_START = 0;
     static const int CA = 1;
-    
+    static const int MSS = 1024;
+    int CA_NO = 0;
     //static const int MAX_SEQ = 30720;
     /* Socket config */
     std::string host;
