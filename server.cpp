@@ -234,11 +234,12 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
          *    sending the first few data packets.
          **/
         std::string str_buf(buf, nbytes);
-        packet.consume(str_buf);
-        packet.printHeader();
+        Packet rcvpacket;
+        rcvpacket.consume(str_buf);
+        rcvpacket.printHeader();
         Con_State = SLOW_START;
-        if (packet.getAck() && !packet.getFin() && !packet.getSyn() 
-                && packet.getAckNumber() == initialSeq + 1) {
+        if (rcvpacket.getAck() && !rcvpacket.getFin() && !rcvpacket.getSyn() 
+                && rcvpacket.getAckNumber() == initialSeq + 1) {
             server_state = ESTABLISHED;
             //congestion control code
             if(Con_State == SLOW_START){
@@ -252,7 +253,7 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
                 sendPacket.setPayLoad(payload);
                 sendPacket.setSeqNumber(initialSeq);
                 initialSeq += payload.size();
-                sendPacket.setAckNumber(packet.getSeqNumber() + 1);
+                sendPacket.setAckNumber(rcvpacket.getSeqNumber() + 1);
                 sendPacket.setSyn(false);
                 sendPacket.setFin(false);
                 sendPacket.setAck(true);
@@ -295,12 +296,14 @@ void TCPServer::runningEstablished(int nReadyFds) {
             perror("sendto");
             exit(1);
         }
-        std::cout<<"Send packet "<<sendPacket.getSeqNumber()<<" "<<buffer.getWindow()
-                <<" "<<buffer.getThresh()<<" Time out Retransmission"<<std::endl;
-        //congestion code
+         //congestion code       
         Con_State = SLOW_START;
         buffer.setThresh(buffer.getWindow()/2);
         buffer.setWindow(MSS);
+        std::cout<<"Send packet "<<sendPacket.getSeqNumber()<<" "<<buffer.getWindow()
+                <<" "<<buffer.getThresh()<<" Time out Retransmission"<<std::endl;
+
+        
         
     } else {
         //we have a packet to receive
@@ -316,15 +319,15 @@ void TCPServer::runningEstablished(int nReadyFds) {
         //congestion control code
         if(Con_State == SLOW_START && buffer.getWindow() <= buffer.getThresh()){
                 buffer.setWindow(buffer.getWindow() + MSS);
-            }else if(Con_State == CA){
-                CA_NO++;
-                if(CA_NO >= buffer.getWindow()){
-                    buffer.setWindow(buffer.getWindow() + MSS);
-                    CA_NO = 0;
-                }
-            }else{
-                Con_State = CA;
+        }else if(Con_State == CA){
+            CA_NO++;
+            if(CA_NO >= buffer.getWindow()){
+                buffer.setWindow(buffer.getWindow() + MSS);
+                CA_NO = 0;
             }
+        }else{
+                Con_State = CA;
+        }
         
         if(packet.getAck()&&(!packet.getFin())&&(!packet.getSyn())){
             struct timeval current;
@@ -430,13 +433,14 @@ void TCPServer::runningFinWait1(int nReadyFds) {
          *       4. if so, change state directly to TIME_WAIT
          **/
         std::string str_buf(buf, nbytes);
-        packet.consume(str_buf);
-        if(packet.getAck() && packet.getFin() && (!packet.getSyn())){
+        Packet rcvpacket;
+        rcvpacket.consume(str_buf);
+        if(rcvpacket.getAck() && rcvpacket.getFin() && (!rcvpacket.getSyn())){
             //
             packet.setAck(true);
             packet.setFin(false);
             packet.setSyn(false);
-            packet.setAckNumber(packet.getSeqNumber());
+            packet.setAckNumber(rcvpacket.getSeqNumber()+1);
             initialSeq += 1;
             packet.setSeqNumber(initialSeq);
             std::string sendPacket = packet.encode();
