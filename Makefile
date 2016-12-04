@@ -27,4 +27,4 @@ test: TCPOverUDP.o test.o
 	$(CXX) -o $@ $^ $(CXXFLAGS)
 
 tarball: clean
-	tar -cvf $(USERID).tar.gz *.cpp *.h Makefile
+	tar -czvf $(USERID).tar.gz *.cpp *.h Makefile
