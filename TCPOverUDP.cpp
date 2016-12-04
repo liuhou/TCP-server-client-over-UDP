@@ -229,6 +229,12 @@ SendBuffer::SendBuffer(){
     DEVRTT = 0.25;
     ssthresh = 15360;
 }
+void SendBuffer::setThresh(uint16_t thresh){
+    ssthresh = thresh;
+}
+uint16_t SendBuffer::getThresh(){
+    return ssthresh;
+}
 void SendBuffer::setStart(uint16_t s){
     startSeqNum = s;
 }

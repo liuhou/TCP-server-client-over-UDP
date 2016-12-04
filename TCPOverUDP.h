@@ -140,6 +140,8 @@ public:
     bool isEmpty();
     uint16_t getWindow();
     void setWindow(uint16_t w);
+    void setThresh(uint16_t);
+    uint16_t getThresh();
 };
 
 class RcvBuffer{
