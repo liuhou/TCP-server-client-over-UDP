@@ -55,7 +55,7 @@ void TCPClient::setupAndRun() {
         return;
     } 
 
-    // TODO: conjure a SYN packet here and send to server
+    // conjure a SYN packet here and send to server
     Packet syn_packet(INIT_SEQ, 0, RCVD_WINDOW_SIZE, 0, 1, 0);
     int nbytes = 0;
     if ((nbytes = sendto(sockfd, syn_packet.encode().c_str(), 
@@ -64,7 +64,7 @@ void TCPClient::setupAndRun() {
         logger.logging(ERROR, "sendto error");
         return;
     }
-    std::cout << "Sending packet " << syn_packet.getAck() << " " 
+    std::cout << "Sending packet " << syn_packet.getAckNumber() << " " 
               << "SYN" << std::endl;
 
     client_state = SYN_SENT;
@@ -142,7 +142,7 @@ void TCPClient::runningSynSent(int nReadyFds) {
             logger.logging(ERROR, "sendto error");
             return;
         }
-        std::cout << "Sending packet " << syn_packet.getSeqNumber() << " " 
+        std::cout << "Sending packet " << syn_packet.getAckNumber() << " " 
                   << "Retransimission " << "SYN" << std::endl;
     } else {
         // we have a packet to receive
@@ -165,7 +165,7 @@ void TCPClient::runningSynSent(int nReadyFds) {
                 && packet.getAckNumber() == INIT_SEQ + 1) {
             std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;        
             Packet ack_packet(packet.getAckNumber(),
-                              packet.getSeqNumber() + 1,
+                              (packet.getSeqNumber() + 1) % MAX_SEQ,
                               RCVD_WINDOW_SIZE, 
                               1, 0, 0);
 
@@ -175,11 +175,11 @@ void TCPClient::runningSynSent(int nReadyFds) {
                 logger.logging(ERROR, "sendto error");
                 return;
             }
-            std::cout << "Sending packet " << ack_packet.getSeqNumber() << std::endl;
+            std::cout << "Sending packet " << ack_packet.getAckNumber() << std::endl;
 
             // initialize recvbuffer
             recv_buffer.setWindow(RCVD_WINDOW_SIZE); 
-            recv_buffer.setCumAck(packet.getSeqNumber() + 1);
+            recv_buffer.setCumAck((packet.getSeqNumber() + 1) % MAX_SEQ);
             std::string filename = "received.data";
             recv_buffer.openFile(filename);
             current_seq = INIT_SEQ + 1;
@@ -222,7 +222,7 @@ void TCPClient::runningEstablished(int nReadyFds) {
             Segment new_seg;
             new_seg.setPacket(packet);
             int sinsert = recv_buffer.insert(new_seg);
-            if (sinsert == 0) current_seq += 1;
+            if (sinsert == 0) current_seq = (current_seq + 1) % MAX_SEQ;
             
             Packet ack_packet(current_seq,
                               recv_buffer.getCumAck(),
@@ -235,14 +235,14 @@ void TCPClient::runningEstablished(int nReadyFds) {
                 logger.logging(ERROR, "sendto error");
                 return;
             }
-            std::cout << "Sending packet " << ack_packet.getSeqNumber();
+            std::cout << "Sending packet " << ack_packet.getAckNumber();
             if (sinsert != 0) 
-                std::cout << " RETRANSMISSION";
+                std::cout << " Retransmission";
             std::cout << std::endl;
             return;
         } else if (packet.getFin()) {
             Packet fin_ack_packet(packet.getAckNumber(), 
-                                  packet.getSeqNumber() + 1,
+                                  (packet.getSeqNumber() + 1) % MAX_SEQ,
                                   RCVD_WINDOW_SIZE, 
                                   1, 0, 1);
             if ((nbytes = sendto(sockfd, fin_ack_packet.encode().c_str(), 
@@ -251,7 +251,7 @@ void TCPClient::runningEstablished(int nReadyFds) {
                 logger.logging(ERROR, "sendto error");
                 return;
             }
-            std::cout << "Sending packet " << fin_ack_packet.getSeqNumber() 
+            std::cout << "Sending packet " << fin_ack_packet.getAckNumber() 
                       << " FIN" << std::endl;
             current_seq = packet.getAckNumber();
             client_state = LAST_ACK;
@@ -275,8 +275,8 @@ void TCPClient::runningLastAck(int nReadyFds) {
         }
         logger.logging(DEBUG, "got packet from server");
 
-        /* TODO: 1. see if the packet is a Fin-ACK\
-         *       if so, go to closed
+        /*  see if the packet is a Fin-ACK\
+         *  if so, go to closed
          **/
         std::string packet_encoded(buf, nbytes);
         Packet packet;
@@ -292,9 +292,13 @@ void TCPClient::runningLastAck(int nReadyFds) {
 }
 
 
-int main() {
-    // TODO: args
+int main(int argc, char *argv[]) {
+
     std::string server_host = "10.0.0.1"; int server_port = 9999;
+    if (argc == 3) {
+        server_host = argv[1];
+        server_port = atoi(argv[2]);
+    }
     TCPClient tcp_client(server_host, server_port);
     tcp_client.setupAndRun();
     

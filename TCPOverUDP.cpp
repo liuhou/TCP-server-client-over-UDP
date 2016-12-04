@@ -291,12 +291,6 @@ int SendBuffer::ack(uint16_t ackNum, double time){
             break;
         }
     }
-    // deal with the case where all the segements in buffer are all acked by the clients
-    // yet somehow acks are all lost
-    std::cout << "everything about the last packet" << std::endl;
-    auto last_one = buffer.back();
-    last_one.packet.printHeader();
-
 
     if(found){
         for(std::vector<Segment>::iterator i = buffer.begin(); i != it && i != buffer.end(); i++){
@@ -381,12 +375,6 @@ void RcvBuffer::closeFile(){
 int RcvBuffer::insert(Segment &segment){ 
     //return 0: inserted and popped out; return 1: discard; return 2: inserted
     std::vector<Segment>::iterator it = buffer.begin();
-    std::cout << "cumAck" << cumAck << std::endl;
-    std::cout << "RcvBuffer: " << std::endl;
-    for (auto jt = buffer.begin(); jt != buffer.end(); jt++ ) {
-        std::cout << (*jt).getAckNum() << " " << (*jt).getSeqNum();
-        std::cout << std::endl;
-    }
     if(segment.getSeqNum() == cumAck){
         /*for(; it != buffer.end() && (*it).getSupposedAck() <= cumAck; it++){
             output<<(*it).packet.getPayLoad();
@@ -428,7 +416,7 @@ int RcvBuffer::insert(Segment &segment){
         it = buffer.insert(it, segment);
         return 2;
     }
-    for(it = buffer.begin(); it != buffer.end() && segment.getSeqNum() < it->getSeqNum(); it++){
+    for(it = buffer.begin(); it != buffer.end() && segment.getSeqNum() > it->getSeqNum(); it++){
         if(segment.getSeqNum() == it->getSeqNum()){
             return 1;
         }

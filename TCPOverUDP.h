@@ -143,6 +143,7 @@ public:
     void setWindow(uint16_t w);
     void setThresh(uint16_t);
     uint16_t getThresh();
+    int getBufferSize() { return buffer.size(); }
 };
 
 class RcvBuffer{

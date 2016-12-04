@@ -12,7 +12,6 @@
 
 class TCPServer {
 private:
-
     enum ServerState {
         CLOSED = 0,
         LISTEN,
@@ -30,16 +29,11 @@ private:
     static const int MAX_BUF_LEN = 1033;
     static const int RETRANS_TIMEOUT_USEC = 500000;
     
-    
     /* Congestion Control */
-    int Con_State = 0;
-    static const int SLOW_START = 0;
-    static const int CA = 1;
     static const int MSS = 1024;
-    int CA_NO = 0;
-    //static const int MAX_SEQ = 30720;
+    static const int MAX_WIN = 15360;
+
     /* Socket config */
-    std::string host;
     std::string port;
     int sockfd;
     struct sockaddr_in their_addr;
@@ -60,7 +54,6 @@ private:
      * and etc.
      * */
     void run();
-
 
     /* Server behavior in LISTEN state */
     void runningListen(int nReadyFds);
@@ -96,13 +89,10 @@ private:
     } 
 public:
     /* construction */
-    TCPServer(std::string &h, std::string &p, std::string &file)
+    TCPServer(std::string &p, std::string &file)
         : server_state(CLOSED)
-        , host(h)
         , port(p)
         , filename(file){ }
-
-    
 
     /* This function sets up sockets, runs into evernt loop and transits the 
      * server state from CLOSED to LISTEN.

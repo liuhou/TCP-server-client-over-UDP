@@ -12,7 +12,7 @@ private:
     Level level;
     std::string side;
 public:
-    SimpleLogger(std::string s="SERVER", Level ll=DEBUG)
+    SimpleLogger(std::string s="SERVER", Level ll=ERROR)
         : level(ll)
         , side(s) { }
     static const std::string level_str[];
