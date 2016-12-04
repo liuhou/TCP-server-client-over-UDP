@@ -14,10 +14,10 @@ all: server client
 *.o: *.cpp
 	$(CXX) -o $@ $^ $(CXXFLAGS) $@.cpp
 
-server: $(SERVER_FILES:.cpp=.o)
+simple-tcp-server: $(SERVER_FILES:.cpp=.o)
 	$(CXX) -o $@ $(CXXFLAGS) $(SERVER_FILES:.cpp=.o)
 
-client: $(CLIENT_FILES:.cpp=.o)
+simple-tcp-client: $(CLIENT_FILES:.cpp=.o)
 	$(CXX) -o $@ $(CXXFLAGS) $(CLIENT_FILES:.cpp=.o)
 
 clean:
