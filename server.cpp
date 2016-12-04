@@ -267,7 +267,7 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
                     perror("sendto");
                     exit(1);
                 }
-                std::cout<<"Send packet "<<sendPacket.getSeqNumber()<<" "<< buffer.getWindow()<<" "
+                std::cout<<"Sending packet "<<sendPacket.getSeqNumber()<<" "<< buffer.getWindow()<<" "
                         <<buffer.getThresh()<<std::endl;
             }
             
@@ -294,7 +294,7 @@ void TCPServer::runningEstablished(int nReadyFds) {
         if (buffer.getWindow() == MSS) buffer.setThresh(MSS);
         else buffer.setThresh(buffer.getWindow()/2);
         buffer.setWindow(MSS);
-        std::cout<<"Send packet "<<sendPacket.getSeqNumber()<<" "<<buffer.getWindow()
+        std::cout<<"Sending packet "<<sendPacket.getSeqNumber()<<" "<<buffer.getWindow()
                 <<" "<<buffer.getThresh()<<" Retransmission"<<std::endl;
 
         
@@ -334,7 +334,7 @@ void TCPServer::runningEstablished(int nReadyFds) {
                     perror("sendto");
                     exit(1);
                 }
-                std::cout<<"Send packet "<<reSegment->getSeqNum()<<" "<<buffer.getWindow()
+                std::cout<<"Sending packet "<<reSegment->getSeqNum()<<" "<<buffer.getWindow()
                         << " Retransmission"<<std::endl;
                 //congestion control code
                 if (buffer.getWindow() == MSS) buffer.setThresh(MSS);
@@ -354,7 +354,7 @@ void TCPServer::runningEstablished(int nReadyFds) {
                     perror("sendto");
                     exit(1);
                 }
-                std::cout<<"Send packet "<<packet.getSeqNumber()<<" FIN"<<std::endl;
+                std::cout<<"Sending packet "<<packet.getSeqNumber()<<" FIN"<<std::endl;
                 server_state = FIN_WAIT_1;
             } else {
                 int numAcked = before_ack-buffer.getBufferSize();
@@ -417,7 +417,7 @@ void TCPServer::runningFinWait1(int nReadyFds) {
             perror("sendto");
             exit(1);
         }
-        std::cout<<"Send packet "<<packet.getSeqNumber()<<" FIN"<<" Retransmission"<<std::endl;
+        std::cout<<"Sending packet "<<packet.getSeqNumber()<<" FIN"<<" Retransmission"<<std::endl;
     } else {
         // we have a packet to receive
         char buf[MAX_BUF_LEN];
@@ -450,7 +450,7 @@ void TCPServer::runningFinWait1(int nReadyFds) {
                     perror("sendto");
                     exit(1);
                 }
-            std::cout<<"Send packet "<<packet.getSeqNumber()<<" FIN"<<std::endl;
+            std::cout<<"Sending packet "<<packet.getSeqNumber()<<" FIN"<<std::endl;
             server_state = TIME_WAIT;
         }
     }
