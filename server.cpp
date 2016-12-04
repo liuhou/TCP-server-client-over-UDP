@@ -248,8 +248,11 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
             
             initialSeq += 1;
             while (reader.hasNext() && buffer.canContain(reader.getChunkSize())){
-                std::string payload = reader.pop();
+                initialSeq %= MAX_SEQ;
+                int pl_size;
+                std::string payload = reader.pop(pl_size);
                 Packet sendPacket;
+                sendPacket.payload_size = pl_size;
                 sendPacket.setPayLoad(payload);
                 sendPacket.setSeqNumber(initialSeq);
                 initialSeq += payload.size();
@@ -317,24 +320,24 @@ void TCPServer::runningEstablished(int nReadyFds) {
         std::string str_buf(buf, nbytes);
         packet.consume(str_buf);
         //congestion control code
-        if(Con_State == SLOW_START && buffer.getWindow() <= buffer.getThresh()){
-                buffer.setWindow(buffer.getWindow() + MSS);
-        }else if(Con_State == CA){
+        if (Con_State == SLOW_START && buffer.getWindow() <= buffer.getThresh()) {
+            buffer.setWindow(buffer.getWindow() + MSS);
+        } else if(Con_State == CA) {
             CA_NO++;
             if(CA_NO >= buffer.getWindow()){
                 buffer.setWindow(buffer.getWindow() + MSS);
                 CA_NO = 0;
             }
-        }else{
-                Con_State = CA;
+        } else {
+            Con_State = CA;
         }
         
-        if(packet.getAck()&&(!packet.getFin())&&(!packet.getSyn())){
+        if (packet.getAck() && (!packet.getFin()) && (!packet.getSyn())){
             std::cout << "Receiving packet " << packet.getAckNumber() << std::endl;
             struct timeval current;
             gettimeofday(&current, NULL);
             double timeCalculate = current.tv_sec + current.tv_usec*1e-6;
-            if(buffer.ack(packet.getAckNumber(), timeCalculate) == 1){
+            if (buffer.ack(packet.getAckNumber(), timeCalculate) == 1) {
                 //fast retransmit
                 Segment *reSegment;
                 reSegment = buffer.findSegment(packet.getAckNumber());
@@ -350,7 +353,7 @@ void TCPServer::runningEstablished(int nReadyFds) {
                 }
                 std::cout<<"Send packet "<<reSegment->getSeqNum()<<" "<<buffer.getWindow()
                         << " Fast Retransmission"<<std::endl;
-                //congestion code
+                //congestion control code
                 Con_State = SLOW_START;
                 buffer.setThresh(buffer.getWindow()/2);
                 buffer.setWindow(MSS);
@@ -371,12 +374,13 @@ void TCPServer::runningEstablished(int nReadyFds) {
                 std::cout<<"Send packet "<<packet.getSeqNumber()<<" FIN"<<std::endl;
                 server_state = FIN_WAIT_1;
             } else {
-                while(reader.hasNext()&&buffer.canContain(reader.getChunkSize())){
-                    std::string payload = reader.pop();
+                while(reader.hasNext() && buffer.canContain(reader.getChunkSize())) {
+                    int pl_size;
+                    std::string payload = reader.pop(pl_size);
                     Packet sendPacket;
+                    sendPacket.payload_size = pl_size;
                     sendPacket.setPayLoad(payload);
                     sendPacket.setSeqNumber(buffer.getEnd());
-                    // for test  std::cout<<sendPacket.getPayLoad()<<"payload"<<std::endl;
                     sendPacket.setAckNumber(packet.getSeqNumber()+1);
                     sendPacket.setSyn(false);
                     sendPacket.setFin(false);
@@ -495,7 +499,7 @@ void TCPServer::serverClose(int sockfd) {
 
 int main() {
     // TODO: use args to specify port and host
-    std::string filename = "test";
+    std::string filename = "test.bak";
     std::string host="10.0.0.1", port="9999";
     /*if (argc == 3){
         port = argv[1];

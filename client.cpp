@@ -160,6 +160,7 @@ void TCPClient::runningSynSent(int nReadyFds) {
         std::string packet_encoded(buf, nbytes);
         Packet packet;
         packet.consume(packet_encoded);
+        packet.payload_size = nbytes - HEADER_LENGTH;
         if (packet.getSyn() && packet.getAck() && !packet.getFin() 
                 && packet.getAckNumber() == INIT_SEQ + 1) {
             std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;        
@@ -212,6 +213,7 @@ void TCPClient::runningEstablished(int nReadyFds) {
         std::string packet_encoded(buf, nbytes);
         Packet packet;
         packet.consume(packet_encoded);
+        packet.payload_size = nbytes - HEADER_LENGTH;
 
         // data packet
         if (!packet.getSyn() && packet.getAck() && !packet.getFin()) {
@@ -220,7 +222,6 @@ void TCPClient::runningEstablished(int nReadyFds) {
             Segment new_seg;
             new_seg.setPacket(packet);
             int sinsert = recv_buffer.insert(new_seg);
-            if (sinsert == 1) return;
             if (sinsert == 0) current_seq += 1;
             
             Packet ack_packet(current_seq,
@@ -235,7 +236,8 @@ void TCPClient::runningEstablished(int nReadyFds) {
                 return;
             }
             std::cout << "Sending packet " << ack_packet.getSeqNumber();
-            
+            if (sinsert != 0) 
+                std::cout << " RETRANSMISSION";
             std::cout << std::endl;
             return;
         } else if (packet.getFin()) {
@@ -279,6 +281,7 @@ void TCPClient::runningLastAck(int nReadyFds) {
         std::string packet_encoded(buf, nbytes);
         Packet packet;
         packet.consume(packet_encoded);
+        packet.payload_size = nbytes - HEADER_LENGTH;
 
         if (packet.getAck()) {
             std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;        

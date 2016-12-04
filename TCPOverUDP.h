@@ -40,6 +40,7 @@ private:
     std::string payload;
 public:
     static const int HEADER_LENGTH = 8; // number of bytes for header only
+    uint16_t payload_size;
 
     Packet();
     Packet(uint16_t seq, uint16_t ack, uint16_t win, bool a, bool s, bool f, std::string &str);
@@ -111,8 +112,8 @@ public:
     int getChunk();
     int getCursor();
     void read(std::string &fn);
-    std::string getTop();
-    std::string pop();
+    std::string getTop(int &size);
+    std::string pop(int &size);
     bool hasNext();
 };
 

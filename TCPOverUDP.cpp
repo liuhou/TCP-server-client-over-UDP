@@ -103,8 +103,7 @@ void Packet::printHeader() {
     std::cout << seqNumber << '\n'
               << ackNumber << '\n'
               << window << '\n'
-              << A << S << F << '\n'
-              << payload << std::endl;
+              << A << S << F << '\n' << std::endl;
 }
 
 Segment::Segment(){
@@ -147,7 +146,7 @@ uint16_t Segment::getAckNum(){
     return ackNum;
 }
 uint16_t Segment::getSupposedAck(){
-    return (uint32_t(seqNum) + uint32_t((packet.getPayLoad()).size()))%MAX_SEQ;
+    return (uint32_t(seqNum) + uint16_t(packet.payload_size))%MAX_SEQ;
 }
 bool Segment::getAck(){
     return isAcked;
@@ -201,9 +200,8 @@ void FileReader::read(std::string &fn){ //load the file
     lastChunkSize = length % chunkSize;
     chunk = (lastChunkSize == 0) ? chunk : chunk + 1;
 }
-std::string FileReader::getTop(){   //return a chunk on the top
-    std::cout << cursor << " " << chunk << std::endl;
-    int size = (cursor < chunk - 1 || lastChunkSize == 0) 
+std::string FileReader::getTop(int &size){   //return a chunk on the top
+    size = (cursor < chunk - 1 || lastChunkSize == 0) 
                 ? chunkSize 
                 : lastChunkSize;
     char c[1024];
@@ -211,8 +209,8 @@ std::string FileReader::getTop(){   //return a chunk on the top
     topString = std::string(c, size);
     return topString;
 }
-std::string FileReader::pop(){ // return a chunk on the top and move the cursor to the next chunk
-    std::string result = getTop();
+std::string FileReader::pop(int &size){ // return a chunk on the top and move the cursor to the next chunk
+    std::string result = getTop(size);
     cursor++;
     return result;
 }
@@ -258,8 +256,8 @@ bool SendBuffer::canContain(uint16_t size){
     return currentSize + size <= cwnd;
 }
 int SendBuffer::push(Segment& segment){
-    uint16_t size = segment.packet.getPayLoad().size();
-    if(canContain(size)){
+    uint16_t size = segment.packet.payload_size;
+    if(canContain(size)) {
         buffer.push_back(segment);
         endSeqNum = segment.getSupposedAck();
         startSeqNum = buffer.front().getSeqNum();
@@ -276,7 +274,8 @@ Segment* SendBuffer::findSegment(uint16_t seq){
     std::cout << "Cannot find a segment in buffer with seq "<<seq<<std::endl;
     return NULL;
 }
-int SendBuffer::ack(uint16_t ackNum, double time){// return 0: nomal ack; return 1: retransmit; return 2: duplicate ack
+int SendBuffer::ack(uint16_t ackNum, double time){
+    // return 0: nomal ack; return 1: retransmit; return 2: duplicate ack
     bool found = false;
     std::vector<Segment>::iterator it = buffer.begin();
     for(; it != buffer.end(); it++){
@@ -292,10 +291,16 @@ int SendBuffer::ack(uint16_t ackNum, double time){// return 0: nomal ack; return
             break;
         }
     }
+    // deal with the case where all the segements in buffer are all acked by the clients
+    // yet somehow acks are all lost
+    std::cout << "everything about the last packet" << std::endl;
+    auto last_one = buffer.back();
+    last_one.packet.printHeader();
+
+
     if(found){
         for(std::vector<Segment>::iterator i = buffer.begin(); i != it && i != buffer.end(); i++){
             (*i).setAck(true);
-                      
         }
         startSeqNum = (*it).getSupposedAck(); 
         buffer.erase(buffer.begin(), it + 1);
@@ -373,8 +378,15 @@ void RcvBuffer::openFile(std::string filename){
 void RcvBuffer::closeFile(){
     output.close();
 }
-int RcvBuffer::insert(Segment &segment){ //return 0: inserted and popped out; return 1: discard; return 2: inserted
+int RcvBuffer::insert(Segment &segment){ 
+    //return 0: inserted and popped out; return 1: discard; return 2: inserted
     std::vector<Segment>::iterator it = buffer.begin();
+    std::cout << "cumAck" << cumAck << std::endl;
+    std::cout << "RcvBuffer: " << std::endl;
+    for (auto jt = buffer.begin(); jt != buffer.end(); jt++ ) {
+        std::cout << (*jt).getAckNum() << " " << (*jt).getSeqNum();
+        std::cout << std::endl;
+    }
     if(segment.getSeqNum() == cumAck){
         /*for(; it != buffer.end() && (*it).getSupposedAck() <= cumAck; it++){
             output<<(*it).packet.getPayLoad();
