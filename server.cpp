@@ -236,9 +236,14 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
         std::string str_buf(buf, nbytes);
         packet.consume(str_buf);
         packet.printHeader();
+        Con_State = SLOW_START;
         if (packet.getAck() && !packet.getFin() && !packet.getSyn() 
                 && packet.getAckNumber() == initialSeq + 1) {
             server_state = ESTABLISHED;
+            //congestion control code
+            if(Con_State == SLOW_START){
+                buffer.setWindow(buffer.getWindow() + MSS);
+            }
             
             initialSeq += 1;
             while (reader.hasNext() && buffer.canContain(reader.getChunkSize())){
@@ -264,7 +269,8 @@ void TCPServer::runningSynRcvd(int nReadyFds) {
                     perror("sendto");
                     exit(1);
                 }
-                std::cout<<"Send packet "<<sendPacket.getSeqNumber()<< buffer.getWindow()<<std::endl;
+                std::cout<<"Send packet "<<sendPacket.getSeqNumber()<<" "<< buffer.getWindow()<<" "
+                        <<buffer.getThresh()<<std::endl;
             }
             
         }else{
@@ -289,7 +295,13 @@ void TCPServer::runningEstablished(int nReadyFds) {
             perror("sendto");
             exit(1);
         }
-        std::cout<<"Send packet "<<sendPacket.getSeqNumber()<<" Time out Retransmission"<<std::endl;
+        std::cout<<"Send packet "<<sendPacket.getSeqNumber()<<" "<<buffer.getWindow()
+                <<" "<<buffer.getThresh()<<" Time out Retransmission"<<std::endl;
+        //congestion code
+        Con_State = SLOW_START;
+        buffer.setThresh(buffer.getWindow()/2);
+        buffer.setWindow(MSS);
+        
     } else {
         //we have a packet to receive
         char buf[MAX_BUF_LEN];
@@ -301,6 +313,18 @@ void TCPServer::runningEstablished(int nReadyFds) {
         //use SendBuffer's API
         std::string str_buf(buf, nbytes);
         packet.consume(str_buf);
+        //congestion control code
+        if(Con_State == SLOW_START && buffer.getWindow() <= buffer.getThresh()){
+                buffer.setWindow(buffer.getWindow() + MSS);
+            }else if(Con_State == CA){
+                CA_NO++;
+                if(CA_NO >= buffer.getWindow()){
+                    buffer.setWindow(buffer.getWindow() + MSS);
+                    CA_NO = 0;
+                }
+            }else{
+                Con_State = CA;
+            }
         
         if(packet.getAck()&&(!packet.getFin())&&(!packet.getSyn())){
             struct timeval current;
@@ -320,7 +344,12 @@ void TCPServer::runningEstablished(int nReadyFds) {
                     perror("sendto");
                     exit(1);
                 }
-                std::cout<<"Send packet "<<reSegment->getSeqNum()<<" Fast Retransmission"<<std::endl;
+                std::cout<<"Send packet "<<reSegment->getSeqNum()<<" "<<buffer.getWindow()
+                        << " Fast Retransmission"<<std::endl;
+                //congestion code
+                Con_State = SLOW_START;
+                buffer.setThresh(buffer.getWindow()/2);
+                buffer.setWindow(MSS);
             }
             if((!reader.hasNext())&&buffer.isEmpty()){
                 packet.setFin(true);
@@ -361,7 +390,8 @@ void TCPServer::runningEstablished(int nReadyFds) {
                         perror("sendto");
                         exit(1);
                     }
-                    std::cout << "Send packet " << sendPacket.getSeqNumber() << std::endl;
+                    std::cout << "Sending packet " << sendPacket.getSeqNumber() <<" "<< buffer.getWindow()
+                            <<" "<<buffer.getThresh() << std::endl;
                 }
             }
         }
