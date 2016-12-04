@@ -202,7 +202,10 @@ void FileReader::read(std::string &fn){ //load the file
     chunk = (lastChunkSize == 0) ? chunk : chunk + 1;
 }
 std::string FileReader::getTop(){   //return a chunk on the top
-    int size = (cursor < chunk - 1) ? chunkSize : lastChunkSize;
+    std::cout << cursor << " " << chunk << std::endl;
+    int size = (cursor < chunk - 1 || lastChunkSize == 0) 
+                ? chunkSize 
+                : lastChunkSize;
     char c[1024];
     filestream.read(c, size);
     topString = std::string(c, size);

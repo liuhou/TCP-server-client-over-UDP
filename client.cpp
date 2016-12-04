@@ -280,11 +280,9 @@ void TCPClient::runningLastAck(int nReadyFds) {
         Packet packet;
         packet.consume(packet_encoded);
 
-        // data packet
         if (packet.getAck()) {
             std::cout << "Receiving packet " << packet.getSeqNumber() << std::endl;        
-            if (packet.getAckNumber() == current_seq + 1)
-                client_state = CLOSED;
+            client_state = CLOSED;
         }
         recv_buffer.closeFile();
     }
