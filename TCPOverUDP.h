@@ -139,7 +139,7 @@ public:
     Segment* nextTimeout();
     bool isEmpty();
     uint16_t getWindow();
-    void setWindow();
+    void setWindow(uint16_t w);
 };
 
 class RcvBuffer{

@@ -202,11 +202,10 @@ void FileReader::read(std::string &fn){ //load the file
     chunk = (lastChunkSize == 0) ? chunk : chunk + 1;
 }
 std::string FileReader::getTop(){   //return a chunk on the top
-    int size = (cursor < chunk) ? chunkSize : lastChunkSize;
-    char *c = (char*)malloc(sizeof(char) * (size + 1));
-    memset(c, '\0', size + 1);
+    int size = (cursor < chunk - 1) ? chunkSize : lastChunkSize;
+    char c[1024];
     filestream.read(c, size);
-    topString = std::string(c);
+    topString = std::string(c, size);
     return topString;
 }
 std::string FileReader::pop(){ // return a chunk on the top and move the cursor to the next chunk
